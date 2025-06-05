@@ -9,7 +9,6 @@ import org.springframework.data.domain.Pageable;
 
 public interface CountryService {
     Country saveCountry(Country country);
-    List<Country> getAllCountries();
     CountryDto getCountryById(Long id);
     void deleteCountry(Long id);
     Page<CountryDto> getAllCountries(Pageable pageable);
