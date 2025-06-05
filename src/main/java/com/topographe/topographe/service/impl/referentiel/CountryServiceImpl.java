@@ -1,10 +1,10 @@
-package com.topographe.topographe.service.impl;
+package com.topographe.topographe.service.impl.referentiel;
 
-import com.topographe.topographe.dto.CountryDto;
-import com.topographe.topographe.entity.Country;
-import com.topographe.topographe.mapper.CountryMapper;
-import com.topographe.topographe.repository.CountryRepository;
-import com.topographe.topographe.service.CountryService;
+import com.topographe.topographe.dto.referentiel.CountryDto;
+import com.topographe.topographe.entity.referentiel.Country;
+import com.topographe.topographe.mapper.referentiel.CountryMapper;
+import com.topographe.topographe.repository.referentiel.CountryRepository;
+import com.topographe.topographe.service.referentiel.CountryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

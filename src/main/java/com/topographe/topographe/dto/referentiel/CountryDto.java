@@ -1,4 +1,4 @@
-package com.topographe.topographe.dto;
+package com.topographe.topographe.dto.referentiel;
 
 import lombok.*;
 

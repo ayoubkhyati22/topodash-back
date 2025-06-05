@@ -1,7 +1,7 @@
-package com.topographe.topographe.mapper;
+package com.topographe.topographe.mapper.referentiel;
 
-import com.topographe.topographe.dto.CountryDto;
-import com.topographe.topographe.entity.Country;
+import com.topographe.topographe.dto.referentiel.CountryDto;
+import com.topographe.topographe.entity.referentiel.Country;
 
 public class CountryMapper {
     public static CountryDto toDto(Country country) {

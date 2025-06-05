@@ -1,8 +1,8 @@
 package com.topographe.topographe.service.impl;
 
-import com.topographe.topographe.dto.AuthResponse;
-import com.topographe.topographe.dto.LoginRequest;
-import com.topographe.topographe.dto.RegisterRequest;
+import com.topographe.topographe.dto.response.AuthResponse;
+import com.topographe.topographe.dto.request.LoginRequest;
+import com.topographe.topographe.dto.request.RegisterRequest;
 import com.topographe.topographe.entity.Role;
 import com.topographe.topographe.entity.User;
 import com.topographe.topographe.repository.UserRepository;

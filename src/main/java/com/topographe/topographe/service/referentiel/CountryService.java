@@ -1,9 +1,9 @@
-package com.topographe.topographe.service;
+package com.topographe.topographe.service.referentiel;
 
-import com.topographe.topographe.dto.CountryDto;
-import com.topographe.topographe.entity.Country;
+import com.topographe.topographe.dto.referentiel.CountryDto;
+import com.topographe.topographe.entity.referentiel.Country;
 import java.util.List;
-import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

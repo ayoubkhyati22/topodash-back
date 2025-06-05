@@ -1,7 +1,7 @@
 package com.topographe.topographe.controller;
 
-import com.topographe.topographe.dto.ApiResponse;
-import com.topographe.topographe.dto.PageResponse;
+import com.topographe.topographe.dto.response.ApiResponse;
+import com.topographe.topographe.dto.response.PageResponse;
 import com.topographe.topographe.dto.UserDTO;
 import com.topographe.topographe.service.UserService;
 import lombok.RequiredArgsConstructor;

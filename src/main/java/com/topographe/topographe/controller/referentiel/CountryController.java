@@ -1,15 +1,15 @@
-package com.topographe.topographe.controller;
+package com.topographe.topographe.controller.referentiel;
 
-import com.topographe.topographe.dto.ApiResponse;
-import com.topographe.topographe.entity.Country;
-import com.topographe.topographe.service.CountryService;
-import com.topographe.topographe.dto.CountryDto;
-import com.topographe.topographe.mapper.CountryMapper;
+import com.topographe.topographe.dto.response.ApiResponse;
+import com.topographe.topographe.entity.referentiel.Country;
+import com.topographe.topographe.service.referentiel.CountryService;
+import com.topographe.topographe.dto.referentiel.CountryDto;
+import com.topographe.topographe.mapper.referentiel.CountryMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import com.topographe.topographe.dto.PageResponse;
+import com.topographe.topographe.dto.response.PageResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;

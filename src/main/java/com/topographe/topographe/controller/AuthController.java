@@ -1,9 +1,9 @@
 package com.topographe.topographe.controller;
 
-import com.topographe.topographe.dto.LoginRequest;
-import com.topographe.topographe.dto.RegisterRequest;
+import com.topographe.topographe.dto.request.LoginRequest;
+import com.topographe.topographe.dto.request.RegisterRequest;
 import com.topographe.topographe.service.AuthService;
-import com.topographe.topographe.dto.ApiResponse;
+import com.topographe.topographe.dto.response.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
