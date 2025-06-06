@@ -70,4 +70,7 @@ public interface TechnicienRepository extends JpaRepository<Technicien, Long> {
             "GROUP BY t " +
             "ORDER BY taskCount DESC")
     List<Object[]> findTechniciensWithTaskCount(Pageable pageable);
+
+    @Query("SELECT COUNT(t) FROM Technicien t WHERE t.assignedTo.id = :topographeId")
+    long countByAssignedToId(@Param("topographeId") Long topographeId);
 }

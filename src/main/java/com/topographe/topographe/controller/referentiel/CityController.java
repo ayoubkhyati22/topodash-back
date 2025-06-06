@@ -12,13 +12,19 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/cities")
 @RequiredArgsConstructor
 public class CityController {
     private final CityService cityService;
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<CityDto>>> getAllCities() {
+        return ResponseEntity.ok(new ApiResponse<>("All Cities found", cityService.getAllCities(), 2000));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<CityDto>> getCityById(@PathVariable Long id) {
         CityDto regionDto = cityService.getCityById(id);

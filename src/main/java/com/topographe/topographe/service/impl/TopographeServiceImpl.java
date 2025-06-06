@@ -2,13 +2,16 @@ package com.topographe.topographe.service.impl;
 
 import com.topographe.topographe.dto.request.TopographeCreateRequest;
 import com.topographe.topographe.dto.request.TopographeUpdateRequest;
-import com.topographe.topographe.dto.response.TopographeResponse;
 import com.topographe.topographe.dto.response.PageResponse;
+import com.topographe.topographe.dto.response.TopographeResponse;
 import com.topographe.topographe.entity.Topographe;
 import com.topographe.topographe.entity.referentiel.City;
 import com.topographe.topographe.exception.DuplicateResourceException;
 import com.topographe.topographe.exception.ResourceNotFoundException;
 import com.topographe.topographe.mapper.TopographeMapper;
+import com.topographe.topographe.repository.ClientRepository;
+import com.topographe.topographe.repository.ProjectRepository;
+import com.topographe.topographe.repository.TechnicienRepository;
 import com.topographe.topographe.repository.referentiel.CityRepository;
 import com.topographe.topographe.repository.TopographeRepository;
 import com.topographe.topographe.service.TopographeService;
@@ -29,6 +32,9 @@ import java.util.stream.Collectors;
 public class TopographeServiceImpl implements TopographeService {
 
     private final TopographeRepository topographeRepository;
+    private final ClientRepository clientRepository;
+    private final TechnicienRepository technicienRepository;
+    private final ProjectRepository projectRepository;
     private final CityRepository cityRepository;
     private final TopographeMapper topographeMapper;
     private final PasswordEncoder passwordEncoder;
@@ -62,22 +68,7 @@ public class TopographeServiceImpl implements TopographeService {
         Pageable pageable = PageRequest.of(page, size, sort);
         Page<Topographe> topographePage = topographeRepository.findAll(pageable);
 
-        List<TopographeResponse> topographeResponses = topographePage.getContent()
-                .stream()
-                .map(topographeMapper::toResponse)
-                .collect(Collectors.toList());
-
-        return new PageResponse<>(
-                topographeResponses,
-                topographePage.getNumber(),
-                topographePage.getSize(),
-                topographePage.getTotalElements(),
-                topographePage.getTotalPages(),
-                topographePage.isFirst(),
-                topographePage.isLast(),
-                topographePage.hasNext(),
-                topographePage.hasPrevious()
-        );
+        return buildPageResponse(topographePage);
     }
 
     @Override
@@ -90,25 +81,23 @@ public class TopographeServiceImpl implements TopographeService {
                 Sort.by(sortBy).ascending();
 
         Pageable pageable = PageRequest.of(page, size, sort);
-        Page<Topographe> topographePage = topographeRepository.findWithFilters(
-                specialization, cityName, isActive, pageable);
 
-        List<TopographeResponse> topographeResponses = topographePage.getContent()
-                .stream()
-                .map(topographeMapper::toResponse)
-                .collect(Collectors.toList());
+        // Normaliser les paramètres vides en null
+        String normalizedSpecialization = (specialization != null && specialization.trim().isEmpty()) ? null : specialization;
+        String normalizedCityName = (cityName != null && cityName.trim().isEmpty()) ? null : cityName;
 
-        return new PageResponse<>(
-                topographeResponses,
-                topographePage.getNumber(),
-                topographePage.getSize(),
-                topographePage.getTotalElements(),
-                topographePage.getTotalPages(),
-                topographePage.isFirst(),
-                topographePage.isLast(),
-                topographePage.hasNext(),
-                topographePage.hasPrevious()
-        );
+        try {
+            // Essayer d'abord avec la requête JPQL
+            Page<Topographe> topographePage = topographeRepository.findWithFilters(
+                    normalizedSpecialization, normalizedCityName, isActive, pageable);
+            return buildPageResponse(topographePage);
+        } catch (Exception e) {
+            // Si la requête JPQL échoue, utiliser la requête native
+            System.out.println("Requête JPQL échouée, utilisation de la requête native: " + e.getMessage());
+            Page<Topographe> topographePage = topographeRepository.findWithFiltersNative(
+                    normalizedSpecialization, normalizedCityName, isActive, pageable);
+            return buildPageResponse(topographePage);
+        }
     }
 
     @Override
@@ -175,7 +164,28 @@ public class TopographeServiceImpl implements TopographeService {
     private PageResponse<TopographeResponse> buildPageResponse(Page<Topographe> topographePage) {
         List<TopographeResponse> topographeResponses = topographePage.getContent()
                 .stream()
-                .map(topographeMapper::toResponse)
+                .map(topographe -> {
+                    TopographeResponse response = topographeMapper.toResponse(topographe);
+
+                    // Alternative: calculer les statistiques ici si le mapper ne fonctionne pas
+                    try {
+                        long totalClients = clientRepository.countByCreatedById(topographe.getId());
+                        long totalTechniciens = technicienRepository.countByAssignedToId(topographe.getId());
+                        long totalProjects = projectRepository.countByTopographeId(topographe.getId());
+
+                        response.setTotalClients((int) totalClients);
+                        response.setTotalTechniciens((int) totalTechniciens);
+                        response.setTotalProjects((int) totalProjects);
+
+                    } catch (Exception e) {
+                        System.err.println("Erreur lors du calcul des statistiques: " + e.getMessage());
+                        response.setTotalClients(0);
+                        response.setTotalTechniciens(0);
+                        response.setTotalProjects(0);
+                    }
+
+                    return response;
+                })
                 .collect(Collectors.toList());
 
         return new PageResponse<>(

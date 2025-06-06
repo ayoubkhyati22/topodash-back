@@ -6,10 +6,19 @@ import com.topographe.topographe.dto.response.TopographeResponse;
 import com.topographe.topographe.entity.Topographe;
 import com.topographe.topographe.entity.enumm.Role;
 import com.topographe.topographe.entity.referentiel.City;
+import com.topographe.topographe.repository.ClientRepository;
+import com.topographe.topographe.repository.TechnicienRepository;
+import com.topographe.topographe.repository.ProjectRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class TopographeMapper {
+
+    private final ClientRepository clientRepository;
+    private final TechnicienRepository technicienRepository;
+    private final ProjectRepository projectRepository;
 
     public Topographe toEntity(TopographeCreateRequest request, City city, String encodedPassword) {
         Topographe topographe = new Topographe();
@@ -56,10 +65,23 @@ public class TopographeMapper {
         response.setCreatedAt(topographe.getCreatedAt());
         response.setIsActive(topographe.getIsActive());
 
-        // Statistiques
-        response.setTotalClients(topographe.getClients() != null ? topographe.getClients().size() : 0);
-        response.setTotalTechniciens(topographe.getTechniciens() != null ? topographe.getTechniciens().size() : 0);
-        response.setTotalProjects(topographe.getProjects() != null ? topographe.getProjects().size() : 0);
+        // Calculer les statistiques via les repositories (évite le lazy loading)
+        try {
+            long totalClients = clientRepository.countByCreatedById(topographe.getId());
+            long totalTechniciens = technicienRepository.countByAssignedToId(topographe.getId());
+            long totalProjects = projectRepository.countByTopographeId(topographe.getId());
+
+            response.setTotalClients((int) totalClients);
+            response.setTotalTechniciens((int) totalTechniciens);
+            response.setTotalProjects((int) totalProjects);
+
+        } catch (Exception e) {
+            // En cas d'erreur, mettre des valeurs par défaut
+            System.err.println("Erreur lors du calcul des statistiques pour le topographe " + topographe.getId() + ": " + e.getMessage());
+            response.setTotalClients(0);
+            response.setTotalTechniciens(0);
+            response.setTotalProjects(0);
+        }
 
         return response;
     }

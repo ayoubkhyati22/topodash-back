@@ -57,4 +57,7 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
 
     @Query("SELECT c.clientType, COUNT(c) FROM Client c GROUP BY c.clientType")
     List<Object[]> countByClientType();
+
+    @Query("SELECT COUNT(c) FROM Client c WHERE c.createdBy.id = :topographeId")
+    long countByCreatedById(@Param("topographeId") Long topographeId);
 }

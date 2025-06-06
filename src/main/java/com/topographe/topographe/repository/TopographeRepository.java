@@ -26,15 +26,34 @@ public interface TopographeRepository extends JpaRepository<Topographe, Long> {
     boolean existsByPhoneNumber(String phoneNumber);
     boolean existsByLicenseNumber(String licenseNumber);
 
-    // Recherche avec filtres
+    // Recherche avec filtres - Version corrigée pour PostgreSQL
     @Query("SELECT t FROM Topographe t WHERE " +
-            "(:specialization IS NULL OR LOWER(t.specialization) LIKE LOWER(CONCAT('%', :specialization, '%'))) AND " +
-            "(:cityName IS NULL OR LOWER(t.city.name) LIKE LOWER(CONCAT('%', :cityName, '%'))) AND " +
+            "(:specialization IS NULL OR :specialization = '' OR CAST(t.specialization AS string) LIKE CONCAT('%', CAST(:specialization AS string), '%')) AND " +
+            "(:cityName IS NULL OR :cityName = '' OR CAST(t.city.name AS string) LIKE CONCAT('%', CAST(:cityName AS string), '%')) AND " +
             "(:isActive IS NULL OR t.isActive = :isActive)")
     Page<Topographe> findWithFilters(@Param("specialization") String specialization,
                                      @Param("cityName") String cityName,
                                      @Param("isActive") Boolean isActive,
                                      Pageable pageable);
+
+    // Alternative avec requête SQL native si la requête JPQL ne fonctionne pas
+    @Query(value = "SELECT * FROM users u " +
+            "JOIN city c ON c.id = u.city_id " +
+            "WHERE u.user_type = 'TOPOGRAPHE' " +
+            "AND (:specialization IS NULL OR :specialization = '' OR CAST(u.specialization AS TEXT) ILIKE CONCAT('%', :specialization, '%')) " +
+            "AND (:cityName IS NULL OR :cityName = '' OR CAST(c.name AS TEXT) ILIKE CONCAT('%', :cityName, '%')) " +
+            "AND (:isActive IS NULL OR u.is_active = :isActive)",
+            countQuery = "SELECT COUNT(*) FROM users u " +
+                    "JOIN city c ON c.id = u.city_id " +
+                    "WHERE u.user_type = 'TOPOGRAPHE' " +
+                    "AND (:specialization IS NULL OR :specialization = '' OR CAST(u.specialization AS TEXT) ILIKE CONCAT('%', :specialization, '%')) " +
+                    "AND (:cityName IS NULL OR :cityName = '' OR CAST(c.name AS TEXT) ILIKE CONCAT('%', :cityName, '%')) " +
+                    "AND (:isActive IS NULL OR u.is_active = :isActive)",
+            nativeQuery = true)
+    Page<Topographe> findWithFiltersNative(@Param("specialization") String specialization,
+                                           @Param("cityName") String cityName,
+                                           @Param("isActive") Boolean isActive,
+                                           Pageable pageable);
 
     // Topographes actifs
     List<Topographe> findByIsActiveTrue();
