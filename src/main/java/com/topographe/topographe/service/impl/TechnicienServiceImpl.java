@@ -2,7 +2,7 @@ package com.topographe.topographe.service.impl;
 
 import com.topographe.topographe.dto.request.TechnicienCreateRequest;
 import com.topographe.topographe.dto.request.TechnicienUpdateRequest;
-import com.topographe.topographe.dto.response.UserPageResponse;
+import com.topographe.topographe.dto.response.PageResponse;
 import com.topographe.topographe.dto.response.TechnicienResponse;
 import com.topographe.topographe.entity.Technicien;
 import com.topographe.topographe.entity.Topographe;
@@ -67,7 +67,7 @@ public class TechnicienServiceImpl implements TechnicienService {
     }
 
     @Override
-    public UserPageResponse<TechnicienResponse> getAllTechniciens(int page, int size, String sortBy, String sortDir) {
+    public PageResponse<TechnicienResponse> getAllTechniciens(int page, int size, String sortBy, String sortDir) {
         Sort sort = sortDir.equalsIgnoreCase("desc") ?
                 Sort.by(sortBy).descending() :
                 Sort.by(sortBy).ascending();
@@ -79,7 +79,7 @@ public class TechnicienServiceImpl implements TechnicienService {
     }
 
     @Override
-    public UserPageResponse<TechnicienResponse> getTechniciensWithFilters(
+    public PageResponse<TechnicienResponse> getTechniciensWithFilters(
             int page, int size, String sortBy, String sortDir,
             SkillLevel skillLevel, String cityName, Boolean isActive,
             Long topographeId, String specialties) {
@@ -96,7 +96,7 @@ public class TechnicienServiceImpl implements TechnicienService {
     }
 
     @Override
-    public UserPageResponse<TechnicienResponse> getTechniciensByTopographe(
+    public PageResponse<TechnicienResponse> getTechniciensByTopographe(
             Long topographeId, int page, int size, String sortBy, String sortDir) {
 
         // Vérifier que le topographe existe
@@ -228,13 +228,13 @@ public class TechnicienServiceImpl implements TechnicienService {
                 .orElseThrow(() -> new ResourceNotFoundException("Technicien non trouvé avec l'ID: " + id));
     }
 
-    private UserPageResponse<TechnicienResponse> buildPageResponse(Page<Technicien> technicienPage) {
+    private PageResponse<TechnicienResponse> buildPageResponse(Page<Technicien> technicienPage) {
         List<TechnicienResponse> technicienResponses = technicienPage.getContent()
                 .stream()
                 .map(technicienMapper::toResponse)
                 .collect(Collectors.toList());
 
-        return new UserPageResponse<>(
+        return new PageResponse<>(
                 technicienResponses,
                 technicienPage.getNumber(),
                 technicienPage.getSize(),

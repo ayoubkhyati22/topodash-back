@@ -2,7 +2,7 @@ package com.topographe.topographe.controller.referentiel;
 
 import com.topographe.topographe.dto.referentiel.CityDto;
 import com.topographe.topographe.dto.response.ApiResponse;
-import com.topographe.topographe.dto.response.PageResponse;
+import com.topographe.topographe.dto.response.RefPageResponse;
 import com.topographe.topographe.service.referentiel.CityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -34,11 +34,11 @@ public class CityController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/page/{page}/size/{size}")
-    public ResponseEntity<ApiResponse<PageResponse<CityDto>>> getAllCitiesPaginated(
+    public ResponseEntity<ApiResponse<RefPageResponse<CityDto>>> getAllCitiesPaginated(
             @PathVariable int page,
             @PathVariable int size) {
         Page<CityDto> regionPage = cityService.getAllCities(PageRequest.of(page, size));
-        PageResponse<CityDto> response = new PageResponse<>(
+        RefPageResponse<CityDto> response = new RefPageResponse<>(
                 regionPage.getContent(),
                 regionPage.getTotalElements(),
                 regionPage.getTotalPages(),

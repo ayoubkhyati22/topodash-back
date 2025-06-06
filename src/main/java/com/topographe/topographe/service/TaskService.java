@@ -3,7 +3,7 @@ package com.topographe.topographe.service;
 import com.topographe.topographe.dto.request.TaskAssignRequest;
 import com.topographe.topographe.dto.request.TaskCreateRequest;
 import com.topographe.topographe.dto.request.TaskUpdateRequest;
-import com.topographe.topographe.dto.response.UserPageResponse;
+import com.topographe.topographe.dto.response.PageResponse;
 import com.topographe.topographe.dto.response.TaskResponse;
 import com.topographe.topographe.entity.enumm.TaskStatus;
 
@@ -14,27 +14,27 @@ public interface TaskService {
 
     TaskResponse createTask(TaskCreateRequest request);
 
-    UserPageResponse<TaskResponse> getAllTasks(int page, int size, String sortBy, String sortDir);
+    PageResponse<TaskResponse> getAllTasks(int page, int size, String sortBy, String sortDir);
 
-    UserPageResponse<TaskResponse> getTasksWithFilters(
+    PageResponse<TaskResponse> getTasksWithFilters(
             int page, int size, String sortBy, String sortDir,
             TaskStatus status, Long projectId, Long technicienId, Long topographeId, Long clientId,
             LocalDate dueDateFrom, LocalDate dueDateTo, String title
     );
 
-    UserPageResponse<TaskResponse> getTasksByProject(
+    PageResponse<TaskResponse> getTasksByProject(
             Long projectId, int page, int size, String sortBy, String sortDir
     );
 
-    UserPageResponse<TaskResponse> getTasksByTechnicien(
+    PageResponse<TaskResponse> getTasksByTechnicien(
             Long technicienId, int page, int size, String sortBy, String sortDir
     );
 
-    UserPageResponse<TaskResponse> getTasksByTopographe(
+    PageResponse<TaskResponse> getTasksByTopographe(
             Long topographeId, int page, int size, String sortBy, String sortDir
     );
 
-    UserPageResponse<TaskResponse> getTasksByClient(
+    PageResponse<TaskResponse> getTasksByClient(
             Long clientId, int page, int size, String sortBy, String sortDir
     );
 

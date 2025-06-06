@@ -4,7 +4,7 @@ import com.topographe.topographe.dto.request.TaskAssignRequest;
 import com.topographe.topographe.dto.request.TaskCreateRequest;
 import com.topographe.topographe.dto.request.TaskUpdateRequest;
 import com.topographe.topographe.dto.response.ApiResponse;
-import com.topographe.topographe.dto.response.UserPageResponse;
+import com.topographe.topographe.dto.response.PageResponse;
 import com.topographe.topographe.dto.response.TaskResponse;
 import com.topographe.topographe.entity.enumm.TaskStatus;
 import com.topographe.topographe.service.TaskService;
@@ -38,14 +38,14 @@ public class TaskController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<UserPageResponse<TaskResponse>>> getAllTasks(
+    public ResponseEntity<ApiResponse<PageResponse<TaskResponse>>> getAllTasks(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-        UserPageResponse<TaskResponse> pageResponse = taskService.getAllTasks(page, size, sortBy, sortDir);
-        ApiResponse<UserPageResponse<TaskResponse>> response = new ApiResponse<>(
+        PageResponse<TaskResponse> pageResponse = taskService.getAllTasks(page, size, sortBy, sortDir);
+        ApiResponse<PageResponse<TaskResponse>> response = new ApiResponse<>(
                 "Liste des tâches récupérée avec succès",
                 pageResponse,
                 HttpStatus.OK.value()
@@ -54,7 +54,7 @@ public class TaskController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<UserPageResponse<TaskResponse>>> searchTasks(
+    public ResponseEntity<ApiResponse<PageResponse<TaskResponse>>> searchTasks(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
@@ -68,11 +68,11 @@ public class TaskController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueDateTo,
             @RequestParam(required = false) String title) {
 
-        UserPageResponse<TaskResponse> pageResponse = taskService.getTasksWithFilters(
+        PageResponse<TaskResponse> pageResponse = taskService.getTasksWithFilters(
                 page, size, sortBy, sortDir, status, projectId, technicienId,
                 topographeId, clientId, dueDateFrom, dueDateTo, title);
 
-        ApiResponse<UserPageResponse<TaskResponse>> response = new ApiResponse<>(
+        ApiResponse<PageResponse<TaskResponse>> response = new ApiResponse<>(
                 "Recherche de tâches effectuée avec succès",
                 pageResponse,
                 HttpStatus.OK.value()
@@ -81,17 +81,17 @@ public class TaskController {
     }
 
     @GetMapping("/project/{projectId}")
-    public ResponseEntity<ApiResponse<UserPageResponse<TaskResponse>>> getTasksByProject(
+    public ResponseEntity<ApiResponse<PageResponse<TaskResponse>>> getTasksByProject(
             @PathVariable Long projectId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-        UserPageResponse<TaskResponse> pageResponse = taskService.getTasksByProject(
+        PageResponse<TaskResponse> pageResponse = taskService.getTasksByProject(
                 projectId, page, size, sortBy, sortDir);
 
-        ApiResponse<UserPageResponse<TaskResponse>> response = new ApiResponse<>(
+        ApiResponse<PageResponse<TaskResponse>> response = new ApiResponse<>(
                 "Tâches du projet récupérées avec succès",
                 pageResponse,
                 HttpStatus.OK.value()
@@ -100,17 +100,17 @@ public class TaskController {
     }
 
     @GetMapping("/technicien/{technicienId}")
-    public ResponseEntity<ApiResponse<UserPageResponse<TaskResponse>>> getTasksByTechnicien(
+    public ResponseEntity<ApiResponse<PageResponse<TaskResponse>>> getTasksByTechnicien(
             @PathVariable Long technicienId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-        UserPageResponse<TaskResponse> pageResponse = taskService.getTasksByTechnicien(
+        PageResponse<TaskResponse> pageResponse = taskService.getTasksByTechnicien(
                 technicienId, page, size, sortBy, sortDir);
 
-        ApiResponse<UserPageResponse<TaskResponse>> response = new ApiResponse<>(
+        ApiResponse<PageResponse<TaskResponse>> response = new ApiResponse<>(
                 "Tâches du technicien récupérées avec succès",
                 pageResponse,
                 HttpStatus.OK.value()
@@ -119,17 +119,17 @@ public class TaskController {
     }
 
     @GetMapping("/topographe/{topographeId}")
-    public ResponseEntity<ApiResponse<UserPageResponse<TaskResponse>>> getTasksByTopographe(
+    public ResponseEntity<ApiResponse<PageResponse<TaskResponse>>> getTasksByTopographe(
             @PathVariable Long topographeId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-        UserPageResponse<TaskResponse> pageResponse = taskService.getTasksByTopographe(
+        PageResponse<TaskResponse> pageResponse = taskService.getTasksByTopographe(
                 topographeId, page, size, sortBy, sortDir);
 
-        ApiResponse<UserPageResponse<TaskResponse>> response = new ApiResponse<>(
+        ApiResponse<PageResponse<TaskResponse>> response = new ApiResponse<>(
                 "Tâches du topographe récupérées avec succès",
                 pageResponse,
                 HttpStatus.OK.value()
@@ -138,17 +138,17 @@ public class TaskController {
     }
 
     @GetMapping("/client/{clientId}")
-    public ResponseEntity<ApiResponse<UserPageResponse<TaskResponse>>> getTasksByClient(
+    public ResponseEntity<ApiResponse<PageResponse<TaskResponse>>> getTasksByClient(
             @PathVariable Long clientId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-        UserPageResponse<TaskResponse> pageResponse = taskService.getTasksByClient(
+        PageResponse<TaskResponse> pageResponse = taskService.getTasksByClient(
                 clientId, page, size, sortBy, sortDir);
 
-        ApiResponse<UserPageResponse<TaskResponse>> response = new ApiResponse<>(
+        ApiResponse<PageResponse<TaskResponse>> response = new ApiResponse<>(
                 "Tâches du client récupérées avec succès",
                 pageResponse,
                 HttpStatus.OK.value()

@@ -2,7 +2,7 @@ package com.topographe.topographe.service.impl;
 
 import com.topographe.topographe.dto.request.ClientCreateRequest;
 import com.topographe.topographe.dto.request.ClientUpdateRequest;
-import com.topographe.topographe.dto.response.UserPageResponse;
+import com.topographe.topographe.dto.response.PageResponse;
 import com.topographe.topographe.dto.response.ClientResponse;
 import com.topographe.topographe.entity.Client;
 import com.topographe.topographe.entity.Topographe;
@@ -70,7 +70,7 @@ public class ClientServiceImpl implements ClientService {
     }
 
     @Override
-    public UserPageResponse<ClientResponse> getAllClients(int page, int size, String sortBy, String sortDir) {
+    public PageResponse<ClientResponse> getAllClients(int page, int size, String sortBy, String sortDir) {
         Sort sort = sortDir.equalsIgnoreCase("desc") ?
                 Sort.by(sortBy).descending() :
                 Sort.by(sortBy).ascending();
@@ -82,7 +82,7 @@ public class ClientServiceImpl implements ClientService {
     }
 
     @Override
-    public UserPageResponse<ClientResponse> getClientsWithFilters(
+    public PageResponse<ClientResponse> getClientsWithFilters(
             int page, int size, String sortBy, String sortDir,
             ClientType clientType, String cityName, Boolean isActive,
             Long topographeId, String companyName) {
@@ -99,7 +99,7 @@ public class ClientServiceImpl implements ClientService {
     }
 
     @Override
-    public UserPageResponse<ClientResponse> getClientsByTopographe(
+    public PageResponse<ClientResponse> getClientsByTopographe(
             Long topographeId, int page, int size, String sortBy, String sortDir) {
 
         // Vérifier que le topographe existe
@@ -191,13 +191,13 @@ public class ClientServiceImpl implements ClientService {
                 .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé avec l'ID: " + id));
     }
 
-    private UserPageResponse<ClientResponse> buildPageResponse(Page<Client> clientPage) {
+    private PageResponse<ClientResponse> buildPageResponse(Page<Client> clientPage) {
         List<ClientResponse> clientResponses = clientPage.getContent()
                 .stream()
                 .map(clientMapper::toResponse)
                 .collect(Collectors.toList());
 
-        return new UserPageResponse<>(
+        return new PageResponse<>(
                 clientResponses,
                 clientPage.getNumber(),
                 clientPage.getSize(),

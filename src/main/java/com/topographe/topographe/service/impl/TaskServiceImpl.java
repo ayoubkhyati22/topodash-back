@@ -3,7 +3,7 @@ package com.topographe.topographe.service.impl;
 import com.topographe.topographe.dto.request.TaskAssignRequest;
 import com.topographe.topographe.dto.request.TaskCreateRequest;
 import com.topographe.topographe.dto.request.TaskUpdateRequest;
-import com.topographe.topographe.dto.response.UserPageResponse;
+import com.topographe.topographe.dto.response.PageResponse;
 import com.topographe.topographe.dto.response.TaskResponse;
 import com.topographe.topographe.entity.Project;
 import com.topographe.topographe.entity.Task;
@@ -75,7 +75,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public UserPageResponse<TaskResponse> getAllTasks(int page, int size, String sortBy, String sortDir) {
+    public PageResponse<TaskResponse> getAllTasks(int page, int size, String sortBy, String sortDir) {
         Sort sort = sortDir.equalsIgnoreCase("desc") ?
                 Sort.by(sortBy).descending() :
                 Sort.by(sortBy).ascending();
@@ -87,7 +87,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public UserPageResponse<TaskResponse> getTasksWithFilters(
+    public PageResponse<TaskResponse> getTasksWithFilters(
             int page, int size, String sortBy, String sortDir,
             TaskStatus status, Long projectId, Long technicienId, Long topographeId, Long clientId,
             LocalDate dueDateFrom, LocalDate dueDateTo, String title) {
@@ -105,7 +105,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public UserPageResponse<TaskResponse> getTasksByProject(
+    public PageResponse<TaskResponse> getTasksByProject(
             Long projectId, int page, int size, String sortBy, String sortDir) {
 
         // Vérifier que le projet existe
@@ -124,7 +124,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public UserPageResponse<TaskResponse> getTasksByTechnicien(
+    public PageResponse<TaskResponse> getTasksByTechnicien(
             Long technicienId, int page, int size, String sortBy, String sortDir) {
 
         // Vérifier que le technicien existe
@@ -143,7 +143,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public UserPageResponse<TaskResponse> getTasksByTopographe(
+    public PageResponse<TaskResponse> getTasksByTopographe(
             Long topographeId, int page, int size, String sortBy, String sortDir) {
 
         Sort sort = sortDir.equalsIgnoreCase("desc") ?
@@ -157,7 +157,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public UserPageResponse<TaskResponse> getTasksByClient(
+    public PageResponse<TaskResponse> getTasksByClient(
             Long clientId, int page, int size, String sortBy, String sortDir) {
 
         Sort sort = sortDir.equalsIgnoreCase("desc") ?
@@ -408,13 +408,13 @@ public class TaskServiceImpl implements TaskService {
                 .orElseThrow(() -> new ResourceNotFoundException("Tâche non trouvée avec l'ID: " + id));
     }
 
-    private UserPageResponse<TaskResponse> buildPageResponse(Page<Task> taskPage) {
+    private PageResponse<TaskResponse> buildPageResponse(Page<Task> taskPage) {
         List<TaskResponse> taskResponses = taskPage.getContent()
                 .stream()
                 .map(taskMapper::toResponse)
                 .collect(Collectors.toList());
 
-        return new UserPageResponse<>(
+        return new PageResponse<>(
                 taskResponses,
                 taskPage.getNumber(),
                 taskPage.getSize(),

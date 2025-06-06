@@ -3,7 +3,7 @@ package com.topographe.topographe.controller;
 import com.topographe.topographe.dto.request.ClientCreateRequest;
 import com.topographe.topographe.dto.request.ClientUpdateRequest;
 import com.topographe.topographe.dto.response.ApiResponse;
-import com.topographe.topographe.dto.response.UserPageResponse;
+import com.topographe.topographe.dto.response.PageResponse;
 import com.topographe.topographe.dto.response.ClientResponse;
 import com.topographe.topographe.entity.enumm.ClientType;
 import com.topographe.topographe.service.ClientService;
@@ -36,14 +36,14 @@ public class ClientController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
-    public ResponseEntity<ApiResponse<UserPageResponse<ClientResponse>>> getAllClients(
+    public ResponseEntity<ApiResponse<PageResponse<ClientResponse>>> getAllClients(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-        UserPageResponse<ClientResponse> pageResponse = clientService.getAllClients(page, size, sortBy, sortDir);
-        ApiResponse<UserPageResponse<ClientResponse>> response = new ApiResponse<>(
+        PageResponse<ClientResponse> pageResponse = clientService.getAllClients(page, size, sortBy, sortDir);
+        ApiResponse<PageResponse<ClientResponse>> response = new ApiResponse<>(
                 "Liste des clients récupérée avec succès",
                 pageResponse,
                 HttpStatus.OK.value()
@@ -53,7 +53,7 @@ public class ClientController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<UserPageResponse<ClientResponse>>> searchClients(
+    public ResponseEntity<ApiResponse<PageResponse<ClientResponse>>> searchClients(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
@@ -64,10 +64,10 @@ public class ClientController {
             @RequestParam(required = false) Long topographeId,
             @RequestParam(required = false) String companyName) {
 
-        UserPageResponse<ClientResponse> pageResponse = clientService.getClientsWithFilters(
+        PageResponse<ClientResponse> pageResponse = clientService.getClientsWithFilters(
                 page, size, sortBy, sortDir, clientType, cityName, isActive, topographeId, companyName);
 
-        ApiResponse<UserPageResponse<ClientResponse>> response = new ApiResponse<>(
+        ApiResponse<PageResponse<ClientResponse>> response = new ApiResponse<>(
                 "Recherche de clients effectuée avec succès",
                 pageResponse,
                 HttpStatus.OK.value()
@@ -77,17 +77,17 @@ public class ClientController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/topographe/{topographeId}")
-    public ResponseEntity<ApiResponse<UserPageResponse<ClientResponse>>> getClientsByTopographe(
+    public ResponseEntity<ApiResponse<PageResponse<ClientResponse>>> getClientsByTopographe(
             @PathVariable Long topographeId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-        UserPageResponse<ClientResponse> pageResponse = clientService.getClientsByTopographe(
+        PageResponse<ClientResponse> pageResponse = clientService.getClientsByTopographe(
                 topographeId, page, size, sortBy, sortDir);
 
-        ApiResponse<UserPageResponse<ClientResponse>> response = new ApiResponse<>(
+        ApiResponse<PageResponse<ClientResponse>> response = new ApiResponse<>(
                 "Clients du topographe récupérés avec succès",
                 pageResponse,
                 HttpStatus.OK.value()

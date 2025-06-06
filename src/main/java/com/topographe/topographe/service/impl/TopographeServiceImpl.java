@@ -3,7 +3,7 @@ package com.topographe.topographe.service.impl;
 import com.topographe.topographe.dto.request.TopographeCreateRequest;
 import com.topographe.topographe.dto.request.TopographeUpdateRequest;
 import com.topographe.topographe.dto.response.TopographeResponse;
-import com.topographe.topographe.dto.response.UserPageResponse;
+import com.topographe.topographe.dto.response.PageResponse;
 import com.topographe.topographe.entity.Topographe;
 import com.topographe.topographe.entity.referentiel.City;
 import com.topographe.topographe.exception.DuplicateResourceException;
@@ -54,7 +54,7 @@ public class TopographeServiceImpl implements TopographeService {
     }
 
     @Override
-    public UserPageResponse<TopographeResponse> getAllTopographes(int page, int size, String sortBy, String sortDir) {
+    public PageResponse<TopographeResponse> getAllTopographes(int page, int size, String sortBy, String sortDir) {
         Sort sort = sortDir.equalsIgnoreCase("desc") ?
                 Sort.by(sortBy).descending() :
                 Sort.by(sortBy).ascending();
@@ -67,7 +67,7 @@ public class TopographeServiceImpl implements TopographeService {
                 .map(topographeMapper::toResponse)
                 .collect(Collectors.toList());
 
-        return new UserPageResponse<>(
+        return new PageResponse<>(
                 topographeResponses,
                 topographePage.getNumber(),
                 topographePage.getSize(),
@@ -81,7 +81,7 @@ public class TopographeServiceImpl implements TopographeService {
     }
 
     @Override
-    public UserPageResponse<TopographeResponse> getTopographesWithFilters(
+    public PageResponse<TopographeResponse> getTopographesWithFilters(
             int page, int size, String sortBy, String sortDir,
             String specialization, String cityName, Boolean isActive) {
 
@@ -98,7 +98,7 @@ public class TopographeServiceImpl implements TopographeService {
                 .map(topographeMapper::toResponse)
                 .collect(Collectors.toList());
 
-        return new UserPageResponse<>(
+        return new PageResponse<>(
                 topographeResponses,
                 topographePage.getNumber(),
                 topographePage.getSize(),
@@ -172,13 +172,13 @@ public class TopographeServiceImpl implements TopographeService {
                 .orElseThrow(() -> new ResourceNotFoundException("Topographe non trouvé avec l'ID: " + id));
     }
 
-    private UserPageResponse<TopographeResponse> buildPageResponse(Page<Topographe> topographePage) {
+    private PageResponse<TopographeResponse> buildPageResponse(Page<Topographe> topographePage) {
         List<TopographeResponse> topographeResponses = topographePage.getContent()
                 .stream()
                 .map(topographeMapper::toResponse)
                 .collect(Collectors.toList());
 
-        return new UserPageResponse<>(
+        return new PageResponse<>(
                 topographeResponses,
                 topographePage.getNumber(),
                 topographePage.getSize(),

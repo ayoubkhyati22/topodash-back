@@ -2,7 +2,7 @@ package com.topographe.topographe.service;
 
 import com.topographe.topographe.dto.request.ClientCreateRequest;
 import com.topographe.topographe.dto.request.ClientUpdateRequest;
-import com.topographe.topographe.dto.response.UserPageResponse;
+import com.topographe.topographe.dto.response.PageResponse;
 import com.topographe.topographe.dto.response.ClientResponse;
 import com.topographe.topographe.entity.enumm.ClientType;
 
@@ -10,15 +10,15 @@ public interface ClientService {
 
     ClientResponse createClient(ClientCreateRequest request);
 
-    UserPageResponse<ClientResponse> getAllClients(int page, int size, String sortBy, String sortDir);
+    PageResponse<ClientResponse> getAllClients(int page, int size, String sortBy, String sortDir);
 
-    UserPageResponse<ClientResponse> getClientsWithFilters(
+    PageResponse<ClientResponse> getClientsWithFilters(
             int page, int size, String sortBy, String sortDir,
             ClientType clientType, String cityName, Boolean isActive,
             Long topographeId, String companyName
     );
 
-    UserPageResponse<ClientResponse> getClientsByTopographe(
+    PageResponse<ClientResponse> getClientsByTopographe(
             Long topographeId, int page, int size, String sortBy, String sortDir
     );
 

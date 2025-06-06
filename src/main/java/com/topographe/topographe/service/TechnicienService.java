@@ -2,7 +2,7 @@ package com.topographe.topographe.service;
 
 import com.topographe.topographe.dto.request.TechnicienCreateRequest;
 import com.topographe.topographe.dto.request.TechnicienUpdateRequest;
-import com.topographe.topographe.dto.response.UserPageResponse;
+import com.topographe.topographe.dto.response.PageResponse;
 import com.topographe.topographe.dto.response.TechnicienResponse;
 import com.topographe.topographe.entity.enumm.SkillLevel;
 
@@ -12,15 +12,15 @@ public interface TechnicienService {
 
     TechnicienResponse createTechnicien(TechnicienCreateRequest request);
 
-    UserPageResponse<TechnicienResponse> getAllTechniciens(int page, int size, String sortBy, String sortDir);
+    PageResponse<TechnicienResponse> getAllTechniciens(int page, int size, String sortBy, String sortDir);
 
-    UserPageResponse<TechnicienResponse> getTechniciensWithFilters(
+    PageResponse<TechnicienResponse> getTechniciensWithFilters(
             int page, int size, String sortBy, String sortDir,
             SkillLevel skillLevel, String cityName, Boolean isActive,
             Long topographeId, String specialties
     );
 
-    UserPageResponse<TechnicienResponse> getTechniciensByTopographe(
+    PageResponse<TechnicienResponse> getTechniciensByTopographe(
             Long topographeId, int page, int size, String sortBy, String sortDir
     );
 

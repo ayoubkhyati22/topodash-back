@@ -2,7 +2,7 @@ package com.topographe.topographe.service;
 
 import com.topographe.topographe.dto.request.ProjectCreateRequest;
 import com.topographe.topographe.dto.request.ProjectUpdateRequest;
-import com.topographe.topographe.dto.response.UserPageResponse;
+import com.topographe.topographe.dto.response.PageResponse;
 import com.topographe.topographe.dto.response.ProjectResponse;
 import com.topographe.topographe.entity.enumm.ProjectStatus;
 
@@ -13,19 +13,19 @@ public interface ProjectService {
 
     ProjectResponse createProject(ProjectCreateRequest request);
 
-    UserPageResponse<ProjectResponse> getAllProjects(int page, int size, String sortBy, String sortDir);
+    PageResponse<ProjectResponse> getAllProjects(int page, int size, String sortBy, String sortDir);
 
-    UserPageResponse<ProjectResponse> getProjectsWithFilters(
+    PageResponse<ProjectResponse> getProjectsWithFilters(
             int page, int size, String sortBy, String sortDir,
             ProjectStatus status, Long clientId, Long topographeId,
             LocalDate startDate, LocalDate endDate, String name
     );
 
-    UserPageResponse<ProjectResponse> getProjectsByClient(
+    PageResponse<ProjectResponse> getProjectsByClient(
             Long clientId, int page, int size, String sortBy, String sortDir
     );
 
-    UserPageResponse<ProjectResponse> getProjectsByTopographe(
+    PageResponse<ProjectResponse> getProjectsByTopographe(
             Long topographeId, int page, int size, String sortBy, String sortDir
     );
 

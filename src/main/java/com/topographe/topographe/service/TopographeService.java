@@ -3,15 +3,15 @@ package com.topographe.topographe.service;
 import com.topographe.topographe.dto.request.TopographeCreateRequest;
 import com.topographe.topographe.dto.request.TopographeUpdateRequest;
 import com.topographe.topographe.dto.response.TopographeResponse;
-import com.topographe.topographe.dto.response.UserPageResponse;
+import com.topographe.topographe.dto.response.PageResponse;
 
 public interface TopographeService {
 
     TopographeResponse createTopographe(TopographeCreateRequest request);
 
-    UserPageResponse<TopographeResponse> getAllTopographes(int page, int size, String sortBy, String sortDir);
+    PageResponse<TopographeResponse> getAllTopographes(int page, int size, String sortBy, String sortDir);
 
-    UserPageResponse<TopographeResponse> getTopographesWithFilters(
+    PageResponse<TopographeResponse> getTopographesWithFilters(
             int page, int size, String sortBy, String sortDir,
             String specialization, String cityName, Boolean isActive
     );

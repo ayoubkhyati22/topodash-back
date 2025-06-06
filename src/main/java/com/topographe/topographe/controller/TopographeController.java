@@ -3,7 +3,7 @@ package com.topographe.topographe.controller;
 import com.topographe.topographe.dto.request.TopographeCreateRequest;
 import com.topographe.topographe.dto.request.TopographeUpdateRequest;
 import com.topographe.topographe.dto.response.ApiResponse;
-import com.topographe.topographe.dto.response.UserPageResponse;
+import com.topographe.topographe.dto.response.PageResponse;
 import com.topographe.topographe.dto.response.TopographeResponse;
 import com.topographe.topographe.service.TopographeService;
 import jakarta.validation.Valid;
@@ -35,14 +35,14 @@ public class TopographeController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
-    public ResponseEntity<ApiResponse<UserPageResponse<TopographeResponse>>> getAllTopographes(
+    public ResponseEntity<ApiResponse<PageResponse<TopographeResponse>>> getAllTopographes(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-        UserPageResponse<TopographeResponse> pageResponse = topographeService.getAllTopographes(page, size, sortBy, sortDir);
-        ApiResponse<UserPageResponse<TopographeResponse>> response = new ApiResponse<>(
+        PageResponse<TopographeResponse> pageResponse = topographeService.getAllTopographes(page, size, sortBy, sortDir);
+        ApiResponse<PageResponse<TopographeResponse>> response = new ApiResponse<>(
                 "Liste des topographes récupérée avec succès",
                 pageResponse,
                 HttpStatus.OK.value()
@@ -52,7 +52,7 @@ public class TopographeController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<UserPageResponse<TopographeResponse>>> searchTopographes(
+    public ResponseEntity<ApiResponse<PageResponse<TopographeResponse>>> searchTopographes(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
@@ -61,10 +61,10 @@ public class TopographeController {
             @RequestParam(required = false) String cityName,
             @RequestParam(required = false) Boolean isActive) {
 
-        UserPageResponse<TopographeResponse> pageResponse = topographeService.getTopographesWithFilters(
+        PageResponse<TopographeResponse> pageResponse = topographeService.getTopographesWithFilters(
                 page, size, sortBy, sortDir, specialization, cityName, isActive);
 
-        ApiResponse<UserPageResponse<TopographeResponse>> response = new ApiResponse<>(
+        ApiResponse<PageResponse<TopographeResponse>> response = new ApiResponse<>(
                 "Recherche de topographes effectuée avec succès",
                 pageResponse,
                 HttpStatus.OK.value()

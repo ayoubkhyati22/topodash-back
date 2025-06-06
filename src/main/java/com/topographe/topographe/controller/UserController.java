@@ -1,7 +1,7 @@
 package com.topographe.topographe.controller;
 
 import com.topographe.topographe.dto.response.ApiResponse;
-import com.topographe.topographe.dto.response.PageResponse;
+import com.topographe.topographe.dto.response.RefPageResponse;
 import com.topographe.topographe.dto.UserDTO;
 import com.topographe.topographe.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -20,11 +20,11 @@ public class UserController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/page/{page}/size/{size}")
-    public ResponseEntity<ApiResponse<PageResponse<UserDTO>>> getAllUsers(
+    public ResponseEntity<ApiResponse<RefPageResponse<UserDTO>>> getAllUsers(
             @PathVariable int page,
             @PathVariable int size) {
         Page<UserDTO> userPage = userService.getAllUsers(PageRequest.of(page, size));
-        PageResponse<UserDTO> response = new PageResponse<>(
+        RefPageResponse<UserDTO> response = new RefPageResponse<>(
             userPage.getContent(),
             userPage.getTotalElements(),
             userPage.getTotalPages(),

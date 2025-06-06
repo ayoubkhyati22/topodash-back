@@ -2,7 +2,7 @@ package com.topographe.topographe.service.impl;
 
 import com.topographe.topographe.dto.request.AdminCreateRequest;
 import com.topographe.topographe.dto.response.AdminResponse;
-import com.topographe.topographe.dto.response.UserPageResponse;
+import com.topographe.topographe.dto.response.PageResponse;
 import com.topographe.topographe.entity.Admin;
 import com.topographe.topographe.entity.referentiel.City;
 import com.topographe.topographe.exception.ResourceNotFoundException;
@@ -53,7 +53,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public UserPageResponse<AdminResponse> getAllAdmins(int page, int size, String sortBy, String sortDir) {
+    public PageResponse<AdminResponse> getAllAdmins(int page, int size, String sortBy, String sortDir) {
         Sort sort = sortDir.equalsIgnoreCase("desc") ?
                 Sort.by(sortBy).descending() :
                 Sort.by(sortBy).ascending();
@@ -66,7 +66,7 @@ public class AdminServiceImpl implements AdminService {
                 .map(adminMapper::toResponse)
                 .collect(Collectors.toList());
 
-        return new UserPageResponse<>(
+        return new PageResponse<>(
                 adminResponses,
                 adminPage.getNumber(),
                 adminPage.getSize(),

@@ -2,7 +2,7 @@ package com.topographe.topographe.service.impl;
 
 import com.topographe.topographe.dto.request.ProjectCreateRequest;
 import com.topographe.topographe.dto.request.ProjectUpdateRequest;
-import com.topographe.topographe.dto.response.UserPageResponse;
+import com.topographe.topographe.dto.response.PageResponse;
 import com.topographe.topographe.dto.response.ProjectResponse;
 import com.topographe.topographe.entity.Client;
 import com.topographe.topographe.entity.Project;
@@ -67,7 +67,7 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-    public UserPageResponse<ProjectResponse> getAllProjects(int page, int size, String sortBy, String sortDir) {
+    public PageResponse<ProjectResponse> getAllProjects(int page, int size, String sortBy, String sortDir) {
         Sort sort = sortDir.equalsIgnoreCase("desc") ?
                 Sort.by(sortBy).descending() :
                 Sort.by(sortBy).ascending();
@@ -79,7 +79,7 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-    public UserPageResponse<ProjectResponse> getProjectsWithFilters(
+    public PageResponse<ProjectResponse> getProjectsWithFilters(
             int page, int size, String sortBy, String sortDir,
             ProjectStatus status, Long clientId, Long topographeId,
             LocalDate startDate, LocalDate endDate, String name) {
@@ -96,7 +96,7 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-    public UserPageResponse<ProjectResponse> getProjectsByClient(
+    public PageResponse<ProjectResponse> getProjectsByClient(
             Long clientId, int page, int size, String sortBy, String sortDir) {
 
         // Vérifier que le client existe
@@ -115,7 +115,7 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-    public UserPageResponse<ProjectResponse> getProjectsByTopographe(
+    public PageResponse<ProjectResponse> getProjectsByTopographe(
             Long topographeId, int page, int size, String sortBy, String sortDir) {
 
         // Vérifier que le topographe existe
@@ -279,13 +279,13 @@ public class ProjectServiceImpl implements ProjectService {
                 .orElseThrow(() -> new ResourceNotFoundException("Projet non trouvé avec l'ID: " + id));
     }
 
-    private UserPageResponse<ProjectResponse> buildPageResponse(Page<Project> projectPage) {
+    private PageResponse<ProjectResponse> buildPageResponse(Page<Project> projectPage) {
         List<ProjectResponse> projectResponses = projectPage.getContent()
                 .stream()
                 .map(projectMapper::toResponse)
                 .collect(Collectors.toList());
 
-        return new UserPageResponse<>(
+        return new PageResponse<>(
                 projectResponses,
                 projectPage.getNumber(),
                 projectPage.getSize(),

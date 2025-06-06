@@ -3,7 +3,7 @@ package com.topographe.topographe.controller;
 import com.topographe.topographe.dto.request.TechnicienCreateRequest;
 import com.topographe.topographe.dto.request.TechnicienUpdateRequest;
 import com.topographe.topographe.dto.response.ApiResponse;
-import com.topographe.topographe.dto.response.UserPageResponse;
+import com.topographe.topographe.dto.response.PageResponse;
 import com.topographe.topographe.dto.response.TechnicienResponse;
 import com.topographe.topographe.entity.enumm.SkillLevel;
 import com.topographe.topographe.service.TechnicienService;
@@ -35,14 +35,14 @@ public class TechnicienController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<UserPageResponse<TechnicienResponse>>> getAllTechniciens(
+    public ResponseEntity<ApiResponse<PageResponse<TechnicienResponse>>> getAllTechniciens(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-        UserPageResponse<TechnicienResponse> pageResponse = technicienService.getAllTechniciens(page, size, sortBy, sortDir);
-        ApiResponse<UserPageResponse<TechnicienResponse>> response = new ApiResponse<>(
+        PageResponse<TechnicienResponse> pageResponse = technicienService.getAllTechniciens(page, size, sortBy, sortDir);
+        ApiResponse<PageResponse<TechnicienResponse>> response = new ApiResponse<>(
                 "Liste des techniciens récupérée avec succès",
                 pageResponse,
                 HttpStatus.OK.value()
@@ -51,7 +51,7 @@ public class TechnicienController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<UserPageResponse<TechnicienResponse>>> searchTechniciens(
+    public ResponseEntity<ApiResponse<PageResponse<TechnicienResponse>>> searchTechniciens(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
@@ -62,10 +62,10 @@ public class TechnicienController {
             @RequestParam(required = false) Long topographeId,
             @RequestParam(required = false) String specialties) {
 
-        UserPageResponse<TechnicienResponse> pageResponse = technicienService.getTechniciensWithFilters(
+        PageResponse<TechnicienResponse> pageResponse = technicienService.getTechniciensWithFilters(
                 page, size, sortBy, sortDir, skillLevel, cityName, isActive, topographeId, specialties);
 
-        ApiResponse<UserPageResponse<TechnicienResponse>> response = new ApiResponse<>(
+        ApiResponse<PageResponse<TechnicienResponse>> response = new ApiResponse<>(
                 "Recherche de techniciens effectuée avec succès",
                 pageResponse,
                 HttpStatus.OK.value()
@@ -74,17 +74,17 @@ public class TechnicienController {
     }
 
     @GetMapping("/topographe/{topographeId}")
-    public ResponseEntity<ApiResponse<UserPageResponse<TechnicienResponse>>> getTechniciensByTopographe(
+    public ResponseEntity<ApiResponse<PageResponse<TechnicienResponse>>> getTechniciensByTopographe(
             @PathVariable Long topographeId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-        UserPageResponse<TechnicienResponse> pageResponse = technicienService.getTechniciensByTopographe(
+        PageResponse<TechnicienResponse> pageResponse = technicienService.getTechniciensByTopographe(
                 topographeId, page, size, sortBy, sortDir);
 
-        ApiResponse<UserPageResponse<TechnicienResponse>> response = new ApiResponse<>(
+        ApiResponse<PageResponse<TechnicienResponse>> response = new ApiResponse<>(
                 "Techniciens du topographe récupérés avec succès",
                 pageResponse,
                 HttpStatus.OK.value()

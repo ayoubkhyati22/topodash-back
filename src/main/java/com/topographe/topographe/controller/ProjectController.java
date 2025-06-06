@@ -3,7 +3,7 @@ package com.topographe.topographe.controller;
 import com.topographe.topographe.dto.request.ProjectCreateRequest;
 import com.topographe.topographe.dto.request.ProjectUpdateRequest;
 import com.topographe.topographe.dto.response.ApiResponse;
-import com.topographe.topographe.dto.response.UserPageResponse;
+import com.topographe.topographe.dto.response.PageResponse;
 import com.topographe.topographe.dto.response.ProjectResponse;
 import com.topographe.topographe.entity.enumm.ProjectStatus;
 import com.topographe.topographe.service.ProjectService;
@@ -37,14 +37,14 @@ public class ProjectController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<UserPageResponse<ProjectResponse>>> getAllProjects(
+    public ResponseEntity<ApiResponse<PageResponse<ProjectResponse>>> getAllProjects(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-        UserPageResponse<ProjectResponse> pageResponse = projectService.getAllProjects(page, size, sortBy, sortDir);
-        ApiResponse<UserPageResponse<ProjectResponse>> response = new ApiResponse<>(
+        PageResponse<ProjectResponse> pageResponse = projectService.getAllProjects(page, size, sortBy, sortDir);
+        ApiResponse<PageResponse<ProjectResponse>> response = new ApiResponse<>(
                 "Liste des projets récupérée avec succès",
                 pageResponse,
                 HttpStatus.OK.value()
@@ -53,7 +53,7 @@ public class ProjectController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<UserPageResponse<ProjectResponse>>> searchProjects(
+    public ResponseEntity<ApiResponse<PageResponse<ProjectResponse>>> searchProjects(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
@@ -65,10 +65,10 @@ public class ProjectController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false) String name) {
 
-        UserPageResponse<ProjectResponse> pageResponse = projectService.getProjectsWithFilters(
+        PageResponse<ProjectResponse> pageResponse = projectService.getProjectsWithFilters(
                 page, size, sortBy, sortDir, status, clientId, topographeId, startDate, endDate, name);
 
-        ApiResponse<UserPageResponse<ProjectResponse>> response = new ApiResponse<>(
+        ApiResponse<PageResponse<ProjectResponse>> response = new ApiResponse<>(
                 "Recherche de projets effectuée avec succès",
                 pageResponse,
                 HttpStatus.OK.value()
@@ -77,17 +77,17 @@ public class ProjectController {
     }
 
     @GetMapping("/client/{clientId}")
-    public ResponseEntity<ApiResponse<UserPageResponse<ProjectResponse>>> getProjectsByClient(
+    public ResponseEntity<ApiResponse<PageResponse<ProjectResponse>>> getProjectsByClient(
             @PathVariable Long clientId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-        UserPageResponse<ProjectResponse> pageResponse = projectService.getProjectsByClient(
+        PageResponse<ProjectResponse> pageResponse = projectService.getProjectsByClient(
                 clientId, page, size, sortBy, sortDir);
 
-        ApiResponse<UserPageResponse<ProjectResponse>> response = new ApiResponse<>(
+        ApiResponse<PageResponse<ProjectResponse>> response = new ApiResponse<>(
                 "Projets du client récupérés avec succès",
                 pageResponse,
                 HttpStatus.OK.value()
@@ -96,17 +96,17 @@ public class ProjectController {
     }
 
     @GetMapping("/topographe/{topographeId}")
-    public ResponseEntity<ApiResponse<UserPageResponse<ProjectResponse>>> getProjectsByTopographe(
+    public ResponseEntity<ApiResponse<PageResponse<ProjectResponse>>> getProjectsByTopographe(
             @PathVariable Long topographeId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-        UserPageResponse<ProjectResponse> pageResponse = projectService.getProjectsByTopographe(
+        PageResponse<ProjectResponse> pageResponse = projectService.getProjectsByTopographe(
                 topographeId, page, size, sortBy, sortDir);
 
-        ApiResponse<UserPageResponse<ProjectResponse>> response = new ApiResponse<>(
+        ApiResponse<PageResponse<ProjectResponse>> response = new ApiResponse<>(
                 "Projets du topographe récupérés avec succès",
                 pageResponse,
                 HttpStatus.OK.value()

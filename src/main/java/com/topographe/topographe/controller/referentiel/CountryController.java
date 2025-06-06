@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import com.topographe.topographe.dto.response.PageResponse;
+import com.topographe.topographe.dto.response.RefPageResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -45,11 +45,11 @@ public class CountryController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/page/{page}/size/{size}")
-    public ResponseEntity<ApiResponse<PageResponse<CountryDto>>> getAllCountriesPaginated(
+    public ResponseEntity<ApiResponse<RefPageResponse<CountryDto>>> getAllCountriesPaginated(
             @PathVariable int page,
             @PathVariable int size) {
         Page<CountryDto> countryPage = countryService.getAllCountries(PageRequest.of(page, size));
-        PageResponse<CountryDto> response = new PageResponse<>(
+        RefPageResponse<CountryDto> response = new RefPageResponse<>(
             countryPage.getContent(),
             countryPage.getTotalElements(),
             countryPage.getTotalPages(),
