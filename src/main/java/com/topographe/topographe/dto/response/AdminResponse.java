@@ -1,16 +1,12 @@
-package com.topographe.topographe.dto;
+package com.topographe.topographe.dto.response;
 
-import com.topographe.topographe.dto.referentiel.CityDto;
 import com.topographe.topographe.entity.enumm.Role;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class UserDTO {
+public class AdminResponse {
     private Long id;
     private String username;
     private String email;
@@ -19,6 +15,9 @@ public class UserDTO {
     private String lastName;
     private LocalDate birthday;
     private String cin;
-    private CityDto cityDto;
+    private String cityName;
     private Role role;
+    private String adminLevel;
+    private LocalDateTime createdAt;
+    private Boolean isActive;
 }

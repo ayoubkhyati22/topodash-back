@@ -1,0 +1,416 @@
+package com.topographe.topographe.controller;
+
+import com.topographe.topographe.dto.request.TaskAssignRequest;
+import com.topographe.topographe.dto.request.TaskCreateRequest;
+import com.topographe.topographe.dto.request.TaskUpdateRequest;
+import com.topographe.topographe.dto.response.ApiResponse;
+import com.topographe.topographe.dto.response.UserPageResponse;
+import com.topographe.topographe.dto.response.TaskResponse;
+import com.topographe.topographe.entity.enumm.TaskStatus;
+import com.topographe.topographe.service.TaskService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/task")
+@RequiredArgsConstructor
+public class TaskController {
+
+    private final TaskService taskService;
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<TaskResponse>> createTask(
+            @Valid @RequestBody TaskCreateRequest request) {
+        TaskResponse taskResponse = taskService.createTask(request);
+        ApiResponse<TaskResponse> response = new ApiResponse<>(
+                "Tâche créée avec succès",
+                taskResponse,
+                HttpStatus.CREATED.value()
+        );
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<UserPageResponse<TaskResponse>>> getAllTasks(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        UserPageResponse<TaskResponse> pageResponse = taskService.getAllTasks(page, size, sortBy, sortDir);
+        ApiResponse<UserPageResponse<TaskResponse>> response = new ApiResponse<>(
+                "Liste des tâches récupérée avec succès",
+                pageResponse,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<UserPageResponse<TaskResponse>>> searchTasks(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir,
+            @RequestParam(required = false) TaskStatus status,
+            @RequestParam(required = false) Long projectId,
+            @RequestParam(required = false) Long technicienId,
+            @RequestParam(required = false) Long topographeId,
+            @RequestParam(required = false) Long clientId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueDateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueDateTo,
+            @RequestParam(required = false) String title) {
+
+        UserPageResponse<TaskResponse> pageResponse = taskService.getTasksWithFilters(
+                page, size, sortBy, sortDir, status, projectId, technicienId,
+                topographeId, clientId, dueDateFrom, dueDateTo, title);
+
+        ApiResponse<UserPageResponse<TaskResponse>> response = new ApiResponse<>(
+                "Recherche de tâches effectuée avec succès",
+                pageResponse,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/project/{projectId}")
+    public ResponseEntity<ApiResponse<UserPageResponse<TaskResponse>>> getTasksByProject(
+            @PathVariable Long projectId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        UserPageResponse<TaskResponse> pageResponse = taskService.getTasksByProject(
+                projectId, page, size, sortBy, sortDir);
+
+        ApiResponse<UserPageResponse<TaskResponse>> response = new ApiResponse<>(
+                "Tâches du projet récupérées avec succès",
+                pageResponse,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/technicien/{technicienId}")
+    public ResponseEntity<ApiResponse<UserPageResponse<TaskResponse>>> getTasksByTechnicien(
+            @PathVariable Long technicienId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        UserPageResponse<TaskResponse> pageResponse = taskService.getTasksByTechnicien(
+                technicienId, page, size, sortBy, sortDir);
+
+        ApiResponse<UserPageResponse<TaskResponse>> response = new ApiResponse<>(
+                "Tâches du technicien récupérées avec succès",
+                pageResponse,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/topographe/{topographeId}")
+    public ResponseEntity<ApiResponse<UserPageResponse<TaskResponse>>> getTasksByTopographe(
+            @PathVariable Long topographeId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        UserPageResponse<TaskResponse> pageResponse = taskService.getTasksByTopographe(
+                topographeId, page, size, sortBy, sortDir);
+
+        ApiResponse<UserPageResponse<TaskResponse>> response = new ApiResponse<>(
+                "Tâches du topographe récupérées avec succès",
+                pageResponse,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/client/{clientId}")
+    public ResponseEntity<ApiResponse<UserPageResponse<TaskResponse>>> getTasksByClient(
+            @PathVariable Long clientId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        UserPageResponse<TaskResponse> pageResponse = taskService.getTasksByClient(
+                clientId, page, size, sortBy, sortDir);
+
+        ApiResponse<UserPageResponse<TaskResponse>> response = new ApiResponse<>(
+                "Tâches du client récupérées avec succès",
+                pageResponse,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<TaskResponse>> getTaskById(@PathVariable Long id) {
+        TaskResponse taskResponse = taskService.getTaskById(id);
+        ApiResponse<TaskResponse> response = new ApiResponse<>(
+                "Tâche trouvée avec succès",
+                taskResponse,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<TaskResponse>> updateTask(
+            @PathVariable Long id,
+            @Valid @RequestBody TaskUpdateRequest request) {
+
+        TaskResponse taskResponse = taskService.updateTask(id, request);
+        ApiResponse<TaskResponse> response = new ApiResponse<>(
+                "Tâche mise à jour avec succès",
+                taskResponse,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<String>> deleteTask(@PathVariable Long id) {
+        taskService.deleteTask(id);
+        ApiResponse<String> response = new ApiResponse<>(
+                "Tâche supprimée avec succès",
+                null,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    // Gestion des assignations
+
+    @PostMapping("/{taskId}/assign")
+    public ResponseEntity<ApiResponse<TaskResponse>> assignTask(
+            @PathVariable Long taskId,
+            @Valid @RequestBody TaskAssignRequest request) {
+
+        TaskResponse taskResponse = taskService.assignTask(taskId, request);
+        ApiResponse<TaskResponse> response = new ApiResponse<>(
+                "Tâche assignée avec succès",
+                taskResponse,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{taskId}/assign")
+    public ResponseEntity<ApiResponse<TaskResponse>> unassignTask(@PathVariable Long taskId) {
+        TaskResponse taskResponse = taskService.unassignTask(taskId);
+        ApiResponse<TaskResponse> response = new ApiResponse<>(
+                "Tâche désassignée avec succès",
+                taskResponse,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{taskId}/assign/{newTechnicienId}")
+    public ResponseEntity<ApiResponse<TaskResponse>> reassignTask(
+            @PathVariable Long taskId,
+            @PathVariable Long newTechnicienId) {
+
+        TaskResponse taskResponse = taskService.reassignTask(taskId, newTechnicienId);
+        ApiResponse<TaskResponse> response = new ApiResponse<>(
+                "Tâche réassignée avec succès",
+                taskResponse,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    // Gestion des statuts
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ApiResponse<TaskResponse>> updateTaskStatus(
+            @PathVariable Long id,
+            @RequestParam TaskStatus status) {
+
+        TaskResponse taskResponse = taskService.updateTaskStatus(id, status);
+        ApiResponse<TaskResponse> response = new ApiResponse<>(
+                "Statut de la tâche mis à jour avec succès",
+                taskResponse,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{id}/start")
+    public ResponseEntity<ApiResponse<TaskResponse>> startTask(@PathVariable Long id) {
+        TaskResponse taskResponse = taskService.startTask(id);
+        ApiResponse<TaskResponse> response = new ApiResponse<>(
+                "Tâche démarrée avec succès",
+                taskResponse,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{id}/complete")
+    public ResponseEntity<ApiResponse<TaskResponse>> completeTask(@PathVariable Long id) {
+        TaskResponse taskResponse = taskService.completeTask(id);
+        ApiResponse<TaskResponse> response = new ApiResponse<>(
+                "Tâche terminée avec succès",
+                taskResponse,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{id}/review")
+    public ResponseEntity<ApiResponse<TaskResponse>> putTaskInReview(@PathVariable Long id) {
+        TaskResponse taskResponse = taskService.putTaskInReview(id);
+        ApiResponse<TaskResponse> response = new ApiResponse<>(
+                "Tâche mise en révision avec succès",
+                taskResponse,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{id}/reset")
+    public ResponseEntity<ApiResponse<TaskResponse>> resetTaskToTodo(@PathVariable Long id) {
+        TaskResponse taskResponse = taskService.resetTaskToTodo(id);
+        ApiResponse<TaskResponse> response = new ApiResponse<>(
+                "Tâche remise à TODO avec succès",
+                taskResponse,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    // Utilitaires et rapports
+
+    @GetMapping("/unassigned")
+    public ResponseEntity<ApiResponse<List<TaskResponse>>> getUnassignedTasks() {
+        List<TaskResponse> unassignedTasks = taskService.getUnassignedTasks();
+        ApiResponse<List<TaskResponse>> response = new ApiResponse<>(
+                "Tâches non assignées récupérées avec succès",
+                unassignedTasks,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/overdue")
+    public ResponseEntity<ApiResponse<List<TaskResponse>>> getOverdueTasks() {
+        List<TaskResponse> overdueTasks = taskService.getOverdueTasks();
+        ApiResponse<List<TaskResponse>> response = new ApiResponse<>(
+                "Tâches en retard récupérées avec succès",
+                overdueTasks,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/due-soon")
+    public ResponseEntity<ApiResponse<List<TaskResponse>>> getTasksDueSoon(
+            @RequestParam(defaultValue = "3") int days) {
+
+        List<TaskResponse> tasksDueSoon = taskService.getTasksDueSoon(days);
+        ApiResponse<List<TaskResponse>> response = new ApiResponse<>(
+                "Tâches à échéance proche récupérées avec succès",
+                tasksDueSoon,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/active")
+    public ResponseEntity<ApiResponse<List<TaskResponse>>> getActiveTasks() {
+        List<TaskResponse> activeTasks = taskService.getActiveTasks();
+        ApiResponse<List<TaskResponse>> response = new ApiResponse<>(
+                "Tâches actives récupérées avec succès",
+                activeTasks,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/priority")
+    public ResponseEntity<ApiResponse<List<TaskResponse>>> getTasksByPriority(
+            @RequestParam(defaultValue = "10") int limit) {
+
+        List<TaskResponse> priorityTasks = taskService.getTasksByPriority(limit);
+        ApiResponse<List<TaskResponse>> response = new ApiResponse<>(
+                "Tâches prioritaires récupérées avec succès",
+                priorityTasks,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/period")
+    public ResponseEntity<ApiResponse<List<TaskResponse>>> getTasksCreatedInPeriod(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+
+        List<TaskResponse> tasks = taskService.getTasksCreatedInPeriod(startDate, endDate);
+        ApiResponse<List<TaskResponse>> response = new ApiResponse<>(
+                "Tâches de la période récupérées avec succès",
+                tasks,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    // Statistiques
+
+    @GetMapping("/stats/status/{status}")
+    public ResponseEntity<ApiResponse<Long>> getTaskCountByStatus(@PathVariable TaskStatus status) {
+        long count = taskService.getTotalTasksByStatus(status);
+        ApiResponse<Long> response = new ApiResponse<>(
+                "Nombre de tâches par statut récupéré avec succès",
+                count,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/stats/project/{projectId}")
+    public ResponseEntity<ApiResponse<Long>> getTaskCountByProject(@PathVariable Long projectId) {
+        long count = taskService.getTaskCountByProject(projectId);
+        ApiResponse<Long> response = new ApiResponse<>(
+                "Nombre de tâches du projet récupéré avec succès",
+                count,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/stats/technicien/{technicienId}")
+    public ResponseEntity<ApiResponse<Long>> getTaskCountByTechnicien(@PathVariable Long technicienId) {
+        long count = taskService.getTaskCountByTechnicien(technicienId);
+        ApiResponse<Long> response = new ApiResponse<>(
+                "Nombre de tâches du technicien récupéré avec succès",
+                count,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/stats/topographe/{topographeId}")
+    public ResponseEntity<ApiResponse<Long>> getTaskCountByTopographe(@PathVariable Long topographeId) {
+        long count = taskService.getTaskCountByTopographe(topographeId);
+        ApiResponse<Long> response = new ApiResponse<>(
+                "Nombre de tâches du topographe récupéré avec succès",
+                count,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+}

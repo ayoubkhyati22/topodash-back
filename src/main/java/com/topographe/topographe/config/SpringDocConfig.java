@@ -14,7 +14,7 @@ public class SpringDocConfig {
         final String securitySchemeName = "bearerAuth";
         return new OpenAPI()
                 .info(new Info()
-                        .title("SayGo API Documentation")
+                        .title("Topo Dash API Documentation")
                         .version("1.0.0")
                         .description("API documentation for SayGo project"))
                 .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))

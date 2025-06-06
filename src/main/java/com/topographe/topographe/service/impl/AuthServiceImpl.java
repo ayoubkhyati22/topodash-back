@@ -3,7 +3,7 @@ package com.topographe.topographe.service.impl;
 import com.topographe.topographe.dto.response.AuthResponse;
 import com.topographe.topographe.dto.request.LoginRequest;
 import com.topographe.topographe.dto.request.RegisterRequest;
-import com.topographe.topographe.entity.Role;
+import com.topographe.topographe.entity.enumm.Role;
 import com.topographe.topographe.entity.User;
 import com.topographe.topographe.repository.UserRepository;
 import com.topographe.topographe.security.JwtUtil;
