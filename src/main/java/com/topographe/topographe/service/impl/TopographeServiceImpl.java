@@ -14,9 +14,12 @@ import com.topographe.topographe.repository.ProjectRepository;
 import com.topographe.topographe.repository.TechnicienRepository;
 import com.topographe.topographe.repository.referentiel.CityRepository;
 import com.topographe.topographe.repository.TopographeRepository;
+import com.topographe.topographe.service.EmailService;
 import com.topographe.topographe.service.TopographeService;
 import com.topographe.topographe.util.PasswordGenerator;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +33,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TopographeServiceImpl implements TopographeService {
 
     private final TopographeRepository topographeRepository;
@@ -40,10 +44,16 @@ public class TopographeServiceImpl implements TopographeService {
     private final TopographeMapper topographeMapper;
     private final PasswordEncoder passwordEncoder;
     private final PasswordGenerator passwordGenerator;
+    private final EmailService emailService;
+
+    @Value("${app.mail.admin:admin@topographe.com}")
+    private String adminEmail;
 
     @Override
     @Transactional
     public TopographeResponse createTopographe(TopographeCreateRequest request) {
+        log.info("Début de la création du topographe: {}", request.getUsername());
+
         // Vérifier les doublons
         validateUniqueFields(request);
 
@@ -53,10 +63,15 @@ public class TopographeServiceImpl implements TopographeService {
 
         // Générer un mot de passe automatiquement s'il n'est pas fourni
         String plainPassword;
+        boolean passwordGenerated = false;
+
         if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
             plainPassword = passwordGenerator.generateSimplePassword(10);
+            passwordGenerated = true;
+            log.info("Mot de passe généré automatiquement pour: {}", request.getUsername());
         } else {
             plainPassword = request.getPassword();
+            log.info("Mot de passe fourni manuellement pour: {}", request.getUsername());
         }
 
         // Encoder le mot de passe
@@ -65,9 +80,55 @@ public class TopographeServiceImpl implements TopographeService {
         // Créer le topographe
         Topographe topographe = topographeMapper.toEntity(request, city, encodedPassword);
         Topographe savedTopographe = topographeRepository.save(topographe);
+        log.info("Topographe créé avec succès: {} (ID: {})", savedTopographe.getUsername(), savedTopographe.getId());
 
-        // Retourner la réponse avec le mot de passe généré (uniquement lors de la création)
-        return topographeMapper.toResponse(savedTopographe, plainPassword);
+        // Préparer la réponse
+        TopographeResponse response = topographeMapper.toResponse(savedTopographe, plainPassword);
+
+        // Envoyer l'email de bienvenue de manière asynchrone
+        try {
+            sendWelcomeEmailAsync(savedTopographe, plainPassword);
+            log.info("Email de bienvenue programmé pour: {}", savedTopographe.getEmail());
+        } catch (Exception e) {
+            log.error("Erreur lors de la programmation de l'email de bienvenue pour: {}", savedTopographe.getEmail(), e);
+            // Ne pas faire échouer la création du topographe si l'email échoue
+        }
+
+        return response;
+    }
+
+    /**
+     * Envoie l'email de bienvenue de manière asynchrone
+     */
+    private void sendWelcomeEmailAsync(Topographe topographe, String password) {
+        // Utiliser un thread séparé pour éviter de bloquer la transaction
+        new Thread(() -> {
+            try {
+                // Attendre un peu pour s'assurer que la transaction est commitée
+                Thread.sleep(1000);
+
+                // Essayer d'abord l'email HTML avec template
+                try {
+                    emailService.sendWelcomeEmailToTopographe(topographe, password);
+                    log.info("Email HTML de bienvenue envoyé avec succès à: {}", topographe.getEmail());
+                } catch (Exception e) {
+                    log.warn("Échec de l'email HTML, tentative avec email simple pour: {}", topographe.getEmail());
+                    // Fallback vers email simple si le template échoue
+                    emailService.sendSimpleWelcomeEmail(topographe, password);
+                    log.info("Email simple de bienvenue envoyé avec succès à: {}", topographe.getEmail());
+                }
+
+                // Envoyer notification à l'admin
+                try {
+                    emailService.sendAdminNotification(topographe, adminEmail);
+                } catch (Exception e) {
+                    log.warn("Échec de l'envoi de la notification admin pour: {}", topographe.getEmail(), e);
+                }
+
+            } catch (Exception e) {
+                log.error("Erreur complète lors de l'envoi des emails pour: {}", topographe.getEmail(), e);
+            }
+        }).start();
     }
 
     @Override
@@ -104,7 +165,7 @@ public class TopographeServiceImpl implements TopographeService {
             return buildPageResponse(topographePage);
         } catch (Exception e) {
             // Si la requête JPQL échoue, utiliser la requête native
-            System.out.println("Requête JPQL échouée, utilisation de la requête native: " + e.getMessage());
+            log.warn("Requête JPQL échouée, utilisation de la requête native: {}", e.getMessage());
             Page<Topographe> topographePage = topographeRepository.findWithFiltersNative(
                     normalizedSpecialization, normalizedCityName, isActive, pageable);
             return buildPageResponse(topographePage);
@@ -147,6 +208,7 @@ public class TopographeServiceImpl implements TopographeService {
         }
 
         topographeRepository.delete(topographe);
+        log.info("Topographe supprimé: {} (ID: {})", topographe.getUsername(), id);
     }
 
     @Override
@@ -155,6 +217,7 @@ public class TopographeServiceImpl implements TopographeService {
         Topographe topographe = findTopographeById(id);
         topographe.setIsActive(true);
         topographeRepository.save(topographe);
+        log.info("Topographe activé: {} (ID: {})", topographe.getUsername(), id);
     }
 
     @Override
@@ -163,6 +226,7 @@ public class TopographeServiceImpl implements TopographeService {
         Topographe topographe = findTopographeById(id);
         topographe.setIsActive(false);
         topographeRepository.save(topographe);
+        log.info("Topographe désactivé: {} (ID: {})", topographe.getUsername(), id);
     }
 
     // Méthodes utilitaires
@@ -190,7 +254,7 @@ public class TopographeServiceImpl implements TopographeService {
                         response.setTotalProjects((int) totalProjects);
 
                     } catch (Exception e) {
-                        System.err.println("Erreur lors du calcul des statistiques: " + e.getMessage());
+                        log.error("Erreur lors du calcul des statistiques: {}", e.getMessage());
                         response.setTotalClients(0);
                         response.setTotalTechniciens(0);
                         response.setTotalProjects(0);

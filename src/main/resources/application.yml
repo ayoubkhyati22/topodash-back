@@ -19,5 +19,48 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
+  # Configuration Email - REMPLACEZ PAR VOS VRAIES VALEURS
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ayoubkhyati89@gmail.com           # ← REMPLACEZ
+    password: vvvi mdff krnb znxo  # ← REMPLACEZ
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 3000
+          writetimeout: 5000
+        debug: false
+    test-connection: false
+
+  # Configuration Thymeleaf pour les templates d'email
+  thymeleaf:
+    mode: HTML
+    encoding: UTF-8
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+
 server:
   port: 8080
+
+# Configuration personnalisée de l'application
+app:
+  name: TopoDash
+  url: http://localhost:8080
+  mail:
+    from: ayoubkhyati89@gmail.com      # ← REMPLACEZ
+    support: ayoubkhyati89@gmail.com   # ← REMPLACEZ
+    admin: ayoubkhyati89@gmail.com       # ← REMPLACEZ
+
+# Configuration des logs
+logging:
+  level:
+    com.topographe.topographe.service.EmailService: INFO
+    org.springframework.mail: DEBUG
+    root: INFO
