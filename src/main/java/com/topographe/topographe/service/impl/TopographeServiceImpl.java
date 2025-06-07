@@ -15,6 +15,7 @@ import com.topographe.topographe.repository.TechnicienRepository;
 import com.topographe.topographe.repository.referentiel.CityRepository;
 import com.topographe.topographe.repository.TopographeRepository;
 import com.topographe.topographe.service.TopographeService;
+import com.topographe.topographe.util.PasswordGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -38,6 +39,7 @@ public class TopographeServiceImpl implements TopographeService {
     private final CityRepository cityRepository;
     private final TopographeMapper topographeMapper;
     private final PasswordEncoder passwordEncoder;
+    private final PasswordGenerator passwordGenerator;
 
     @Override
     @Transactional
@@ -49,14 +51,23 @@ public class TopographeServiceImpl implements TopographeService {
         City city = cityRepository.findById(request.getCityId())
                 .orElseThrow(() -> new ResourceNotFoundException("Ville non trouvée avec l'ID: " + request.getCityId()));
 
+        // Générer un mot de passe automatiquement s'il n'est pas fourni
+        String plainPassword;
+        if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
+            plainPassword = passwordGenerator.generateSimplePassword(10);
+        } else {
+            plainPassword = request.getPassword();
+        }
+
         // Encoder le mot de passe
-        String encodedPassword = passwordEncoder.encode(request.getPassword());
+        String encodedPassword = passwordEncoder.encode(plainPassword);
 
         // Créer le topographe
         Topographe topographe = topographeMapper.toEntity(request, city, encodedPassword);
         Topographe savedTopographe = topographeRepository.save(topographe);
 
-        return topographeMapper.toResponse(savedTopographe);
+        // Retourner la réponse avec le mot de passe généré (uniquement lors de la création)
+        return topographeMapper.toResponse(savedTopographe, plainPassword);
     }
 
     @Override
@@ -165,6 +176,7 @@ public class TopographeServiceImpl implements TopographeService {
         List<TopographeResponse> topographeResponses = topographePage.getContent()
                 .stream()
                 .map(topographe -> {
+                    // Ne pas inclure le mot de passe généré pour les listes
                     TopographeResponse response = topographeMapper.toResponse(topographe);
 
                     // Alternative: calculer les statistiques ici si le mapper ne fonctionne pas

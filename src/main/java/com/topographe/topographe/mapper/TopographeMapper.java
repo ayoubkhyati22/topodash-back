@@ -49,6 +49,10 @@ public class TopographeMapper {
     }
 
     public TopographeResponse toResponse(Topographe topographe) {
+        return toResponse(topographe, null);
+    }
+
+    public TopographeResponse toResponse(Topographe topographe, String generatedPassword) {
         TopographeResponse response = new TopographeResponse();
         response.setId(topographe.getId());
         response.setUsername(topographe.getUsername());
@@ -64,6 +68,7 @@ public class TopographeMapper {
         response.setSpecialization(topographe.getSpecialization());
         response.setCreatedAt(topographe.getCreatedAt());
         response.setIsActive(topographe.getIsActive());
+        response.setGeneratedPassword(generatedPassword);
 
         // Calculer les statistiques via les repositories (évite le lazy loading)
         try {

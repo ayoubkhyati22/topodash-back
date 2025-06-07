@@ -24,4 +24,7 @@ public class TopographeResponse {
     private int totalClients;
     private int totalTechniciens;
     private int totalProjects;
+
+    // Retourner le mot de passe généré (uniquement lors de la création)
+    private String generatedPassword;
 }
