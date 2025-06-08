@@ -46,10 +46,10 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
     // Recherche avec filtres - version originale pour la pagination
     @Query("SELECT c FROM Client c WHERE " +
             "(:clientType IS NULL OR c.clientType = :clientType) AND " +
-            "(:cityName IS NULL OR LOWER(c.city.name) LIKE LOWER(CONCAT('%', :cityName, '%'))) AND " +
+            "(:cityName IS NULL OR :cityName = '' OR LOWER(c.city.name) LIKE LOWER(CONCAT('%', :cityName, '%'))) AND " +
             "(:isActive IS NULL OR c.isActive = :isActive) AND " +
             "(:topographeId IS NULL OR c.createdBy.id = :topographeId) AND " +
-            "(:companyName IS NULL OR LOWER(c.companyName) LIKE LOWER(CONCAT('%', :companyName, '%')))")
+            "(:companyName IS NULL OR :companyName = '' OR LOWER(COALESCE(c.companyName, '')) LIKE LOWER(CONCAT('%', :companyName, '%')))")
     Page<Client> findWithFilters(@Param("clientType") ClientType clientType,
                                  @Param("cityName") String cityName,
                                  @Param("isActive") Boolean isActive,

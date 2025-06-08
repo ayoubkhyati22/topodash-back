@@ -10,6 +10,7 @@ import com.topographe.topographe.service.ClientService;
 import com.topographe.topographe.security.CustomUserDetails;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/client")
 @RequiredArgsConstructor
+@Slf4j
 public class ClientController {
 
     private final ClientService clientService;
@@ -28,6 +30,8 @@ public class ClientController {
     public ResponseEntity<ApiResponse<ClientResponse>> createClient(
             @Valid @RequestBody ClientCreateRequest request,
             Authentication authentication) {
+
+        log.info("Creating client with username: {}", request.getUsername());
 
         // Récupérer l'utilisateur connecté
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
@@ -46,9 +50,12 @@ public class ClientController {
     public ResponseEntity<ApiResponse<PageResponse<ClientResponse>>> getAllClients(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "firstName") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir,
             Authentication authentication) {
+
+        log.info("Fetching all clients - page: {}, size: {}, sortBy: {}, sortDir: {}",
+                page, size, sortBy, sortDir);
 
         // Récupérer l'utilisateur connecté
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
@@ -68,28 +75,65 @@ public class ClientController {
     public ResponseEntity<ApiResponse<PageResponse<ClientResponse>>> searchClients(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "firstName") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir,
-            @RequestParam(required = false) ClientType clientType,
+            @RequestParam(required = false) String clientType,
             @RequestParam(required = false) String cityName,
             @RequestParam(required = false) Boolean isActive,
             @RequestParam(required = false) Long topographeId,
             @RequestParam(required = false) String companyName,
             Authentication authentication) {
 
-        // Récupérer l'utilisateur connecté
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        log.info("Searching clients with filters - page: {}, size: {}, clientType: {}, cityName: {}, isActive: {}, topographeId: {}, companyName: {}",
+                page, size, clientType, cityName, isActive, topographeId, companyName);
 
-        PageResponse<ClientResponse> pageResponse = clientService.getClientsWithFilters(
-                page, size, sortBy, sortDir, clientType, cityName, isActive,
-                topographeId, companyName, userDetails.getUser());
+        try {
+            // Récupérer l'utilisateur connecté
+            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 
-        ApiResponse<PageResponse<ClientResponse>> response = new ApiResponse<>(
-                "Recherche de clients effectuée avec succès",
-                pageResponse,
-                HttpStatus.OK.value()
-        );
-        return ResponseEntity.ok(response);
+            // Convertir la chaîne clientType en enum si elle n'est pas null
+            ClientType clientTypeEnum = null;
+            if (clientType != null && !clientType.trim().isEmpty()) {
+                try {
+                    clientTypeEnum = ClientType.valueOf(clientType.trim().toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    log.warn("Invalid clientType value: {}", clientType);
+                    ApiResponse<PageResponse<ClientResponse>> errorResponse = new ApiResponse<>(
+                            "Type de client invalide: " + clientType,
+                            null,
+                            HttpStatus.BAD_REQUEST.value()
+                    );
+                    return ResponseEntity.badRequest().body(errorResponse);
+                }
+            }
+
+            // Nettoyer les paramètres de chaîne
+            String cleanCityName = (cityName != null && !cityName.trim().isEmpty()) ? cityName.trim() : null;
+            String cleanCompanyName = (companyName != null && !companyName.trim().isEmpty()) ? companyName.trim() : null;
+
+            log.info("Processed search parameters - clientTypeEnum: {}, cleanCityName: {}, cleanCompanyName: {}",
+                    clientTypeEnum, cleanCityName, cleanCompanyName);
+
+            PageResponse<ClientResponse> pageResponse = clientService.getClientsWithFilters(
+                    page, size, sortBy, sortDir, clientTypeEnum, cleanCityName, isActive,
+                    topographeId, cleanCompanyName, userDetails.getUser());
+
+            ApiResponse<PageResponse<ClientResponse>> response = new ApiResponse<>(
+                    "Recherche de clients effectuée avec succès",
+                    pageResponse,
+                    HttpStatus.OK.value()
+            );
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error during client search", e);
+            ApiResponse<PageResponse<ClientResponse>> errorResponse = new ApiResponse<>(
+                    "Erreur lors de la recherche: " + e.getMessage(),
+                    null,
+                    HttpStatus.INTERNAL_SERVER_ERROR.value()
+            );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('TOPOGRAPHE')")
@@ -98,9 +142,11 @@ public class ClientController {
             @PathVariable Long topographeId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "firstName") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir,
             Authentication authentication) {
+
+        log.info("Fetching clients for topographe: {}", topographeId);
 
         // Récupérer l'utilisateur connecté
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
@@ -122,6 +168,8 @@ public class ClientController {
             @PathVariable Long id,
             Authentication authentication) {
 
+        log.info("Fetching client by ID: {}", id);
+
         // Récupérer l'utilisateur connecté
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 
@@ -141,6 +189,8 @@ public class ClientController {
             @Valid @RequestBody ClientUpdateRequest request,
             Authentication authentication) {
 
+        log.info("Updating client with ID: {}", id);
+
         // Récupérer l'utilisateur connecté
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 
@@ -158,6 +208,8 @@ public class ClientController {
     public ResponseEntity<ApiResponse<String>> deleteClient(
             @PathVariable Long id,
             Authentication authentication) {
+
+        log.info("Deleting client with ID: {}", id);
 
         // Récupérer l'utilisateur connecté
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
@@ -177,6 +229,8 @@ public class ClientController {
             @PathVariable Long id,
             Authentication authentication) {
 
+        log.info("Activating client with ID: {}", id);
+
         // Récupérer l'utilisateur connecté
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 
@@ -194,6 +248,8 @@ public class ClientController {
     public ResponseEntity<ApiResponse<String>> deactivateClient(
             @PathVariable Long id,
             Authentication authentication) {
+
+        log.info("Deactivating client with ID: {}", id);
 
         // Récupérer l'utilisateur connecté
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();

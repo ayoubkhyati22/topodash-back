@@ -31,6 +31,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -179,32 +180,60 @@ public class ClientServiceImpl implements ClientService {
         return buildPageResponseWithStats(clientPage);
     }
 
+    // Corrections à apporter dans ClientServiceImpl.java pour la méthode getClientsWithFilters
+
     @Override
     public PageResponse<ClientResponse> getClientsWithFilters(
             int page, int size, String sortBy, String sortDir,
             ClientType clientType, String cityName, Boolean isActive,
             Long topographeId, String companyName, User currentUser) {
 
-        Sort sort = sortDir.equalsIgnoreCase("desc") ?
-                Sort.by(sortBy).descending() :
-                Sort.by(sortBy).ascending();
+        log.info("Searching clients with filters - clientType: {}, cityName: {}, isActive: {}, topographeId: {}, companyName: {}",
+                clientType, cityName, isActive, topographeId, companyName);
 
-        Pageable pageable = PageRequest.of(page, size, sort);
-        Page<Client> clientPage;
+        try {
+            Sort sort = sortDir.equalsIgnoreCase("desc") ?
+                    Sort.by(sortBy).descending() :
+                    Sort.by(sortBy).ascending();
 
-        if (currentUser.getRole() == Role.ADMIN) {
-            // L'admin peut chercher avec tous les filtres
-            clientPage = clientRepository.findWithFilters(
-                    clientType, cityName, isActive, topographeId, companyName, pageable);
-        } else if (currentUser.getRole() == Role.TOPOGRAPHE) {
-            // Le topographe ne peut chercher que parmi ses clients
-            clientPage = clientRepository.findWithFilters(
-                    clientType, cityName, isActive, currentUser.getId(), companyName, pageable);
-        } else {
-            throw new IllegalArgumentException("Accès non autorisé");
+            Pageable pageable = PageRequest.of(page, size, sort);
+            Page<Client> clientPage;
+
+            if (currentUser.getRole() == Role.ADMIN) {
+                // L'admin peut chercher avec tous les filtres
+                log.info("Admin search with all filters");
+                clientPage = clientRepository.findWithFilters(
+                        clientType, cityName, isActive, topographeId, companyName, pageable);
+            } else if (currentUser.getRole() == Role.TOPOGRAPHE) {
+                // Le topographe ne peut chercher que parmi ses clients
+                log.info("Topographe search limited to own clients, topographeId forced to: {}", currentUser.getId());
+                clientPage = clientRepository.findWithFilters(
+                        clientType, cityName, isActive, currentUser.getId(), companyName, pageable);
+            } else {
+                throw new IllegalArgumentException("Accès non autorisé pour le rôle: " + currentUser.getRole());
+            }
+
+            log.info("Search returned {} clients out of {} total",
+                    clientPage.getNumberOfElements(), clientPage.getTotalElements());
+
+            return buildPageResponseWithStats(clientPage);
+
+        } catch (Exception e) {
+            log.error("Error during client search with filters", e);
+
+            // En cas d'erreur, retourner une page vide plutôt que de faire échouer la requête
+            return new PageResponse<>(
+                    Collections.emptyList(),
+                    page,
+                    size,
+                    0L,
+                    0,
+                    true,
+                    true,
+                    false,
+                    false
+            );
         }
-
-        return buildPageResponseWithStats(clientPage);
     }
 
     @Override
