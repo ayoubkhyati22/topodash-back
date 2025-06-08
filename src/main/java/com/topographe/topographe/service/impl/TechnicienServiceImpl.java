@@ -290,7 +290,8 @@ public class TechnicienServiceImpl implements TechnicienService {
             throw new IllegalArgumentException("Un topographe ne peut voir que ses propres techniciens");
         }
 
-        return technicienMapper.toResponse(technicien);
+        // CORRECTION: Utiliser la méthode qui calcule les statistiques
+        return buildTechnicienResponseWithStats(technicien);
     }
 
     @Override
@@ -478,7 +479,7 @@ public class TechnicienServiceImpl implements TechnicienService {
     private PageResponse<TechnicienResponse> buildPageResponse(Page<Technicien> technicienPage) {
         List<TechnicienResponse> technicienResponses = technicienPage.getContent()
                 .stream()
-                .map(technicienMapper::toResponse)
+                .map(this::buildTechnicienResponseWithStats) // ← CORRECTION ICI
                 .collect(Collectors.toList());
 
         return new PageResponse<>(
@@ -531,6 +532,8 @@ public class TechnicienServiceImpl implements TechnicienService {
         TechnicienResponse response = technicienMapper.toResponse(technicien);
 
         try {
+            log.debug("Calcul des statistiques pour le technicien ID: {}", technicien.getId());
+
             // Calculer les statistiques des tâches via le repository
             long totalTasks = technicienRepository.countTasksByTechnicien(technicien.getId());
             long activeTasks = technicienRepository.countTasksByTechnicienAndStatus(
@@ -547,7 +550,7 @@ public class TechnicienServiceImpl implements TechnicienService {
             long activeProjects = technicienRepository.countActiveProjectsByTechnicien(technicien.getId());
             long completedProjects = technicienRepository.countCompletedProjectsByTechnicien(technicien.getId());
 
-            // Mettre à jour la réponse
+            // Mettre à jour la réponse avec les valeurs calculées
             response.setTotalTasks((int) totalTasks);
             response.setActiveTasks((int) activeTasks);
             response.setCompletedTasks((int) completedTasks);
@@ -561,17 +564,22 @@ public class TechnicienServiceImpl implements TechnicienService {
             double workloadPercentage = Math.min((activeTasks / 5.0) * 100, 100); // Max 5 tâches = 100%
             response.setWorkloadPercentage(Math.round(workloadPercentage * 100.0) / 100.0);
             response.setAvailable(activeTasks < 5);
+            response.setMaxRecommendedTasks(5);
 
             // Calcul du taux de completion
             if (totalTasks > 0) {
                 double completionRate = ((double) completedTasks / totalTasks) * 100;
                 response.setCompletionRate(Math.round(completionRate * 100.0) / 100.0);
+            } else {
+                response.setCompletionRate(0.0);
             }
 
             // Calcul de la moyenne de tâches par projet
             if (totalProjects > 0) {
                 double avgTasksPerProject = (double) totalTasks / totalProjects;
                 response.setAverageTasksPerProject(Math.round(avgTasksPerProject * 100.0) / 100.0);
+            } else {
+                response.setAverageTasksPerProject(0.0);
             }
 
             log.debug("Statistiques calculées pour technicien {} ({}): total={}, actifs={}, projets={}",
@@ -579,7 +587,22 @@ public class TechnicienServiceImpl implements TechnicienService {
 
         } catch (Exception e) {
             log.error("Erreur lors du calcul des statistiques pour le technicien {}: {}",
-                    technicien.getId(), e.getMessage());
+                    technicien.getId(), e.getMessage(), e);
+
+            // En cas d'erreur, garder les valeurs par défaut
+            response.setTotalTasks(0);
+            response.setActiveTasks(0);
+            response.setCompletedTasks(0);
+            response.setTodoTasks(0);
+            response.setReviewTasks(0);
+            response.setTotalProjects(0);
+            response.setActiveProjects(0);
+            response.setCompletedProjects(0);
+            response.setWorkloadPercentage(0.0);
+            response.setAvailable(true);
+            response.setMaxRecommendedTasks(5);
+            response.setCompletionRate(0.0);
+            response.setAverageTasksPerProject(0.0);
         }
 
         return response;

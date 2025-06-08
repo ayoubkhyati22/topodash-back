@@ -101,12 +101,11 @@ public interface TechnicienRepository extends JpaRepository<Technicien, Long> {
     long countByAssignedToId(@Param("topographeId") Long topographeId);
 
     // Nouvelles méthodes pour les statistiques Many-to-Many
-
-    // Nombre de tâches par technicien par statut
     @Query("SELECT COUNT(task) FROM Task task JOIN task.assignedTechniciens tech " +
             "WHERE tech.id = :technicienId AND task.status = :status")
     long countTasksByTechnicienAndStatus(@Param("technicienId") Long technicienId,
                                          @Param("status") com.topographe.topographe.entity.enumm.TaskStatus status);
+
 
     // Nombre total de tâches par technicien
     @Query("SELECT COUNT(task) FROM Task task JOIN task.assignedTechniciens tech " +
@@ -127,4 +126,54 @@ public interface TechnicienRepository extends JpaRepository<Technicien, Long> {
     @Query("SELECT COUNT(DISTINCT task.project) FROM Task task JOIN task.assignedTechniciens tech " +
             "WHERE tech.id = :technicienId AND task.project.status = 'COMPLETED'")
     long countCompletedProjectsByTechnicien(@Param("technicienId") Long technicienId);
+
+    // ALTERNATIVE: Requêtes SQL natives si les JPQL ne fonctionnent pas
+    @Query(value = "SELECT COUNT(t.id) FROM tasks t " +
+            "JOIN task_technicien tt ON t.id = tt.task_id " +
+            "WHERE tt.technicien_id = :technicienId AND t.status = :status",
+            nativeQuery = true)
+    long countTasksByTechnicienAndStatusNative(@Param("technicienId") Long technicienId,
+                                               @Param("status") String status);
+
+    @Query(value = "SELECT COUNT(t.id) FROM tasks t " +
+            "JOIN task_technicien tt ON t.id = tt.task_id " +
+            "WHERE tt.technicien_id = :technicienId",
+            nativeQuery = true)
+    long countTasksByTechnicienNative(@Param("technicienId") Long technicienId);
+
+    @Query(value = "SELECT COUNT(DISTINCT p.id) FROM projects p " +
+            "JOIN tasks t ON p.id = t.project_id " +
+            "JOIN task_technicien tt ON t.id = tt.task_id " +
+            "WHERE tt.technicien_id = :technicienId",
+            nativeQuery = true)
+    long countProjectsByTechnicienNative(@Param("technicienId") Long technicienId);
+
+    @Query(value = "SELECT COUNT(DISTINCT p.id) FROM projects p " +
+            "JOIN tasks t ON p.id = t.project_id " +
+            "JOIN task_technicien tt ON t.id = tt.task_id " +
+            "WHERE tt.technicien_id = :technicienId AND p.status = 'IN_PROGRESS'",
+            nativeQuery = true)
+    long countActiveProjectsByTechnicienNative(@Param("technicienId") Long technicienId);
+
+    @Query(value = "SELECT COUNT(DISTINCT p.id) FROM projects p " +
+            "JOIN tasks t ON p.id = t.project_id " +
+            "JOIN task_technicien tt ON t.id = tt.task_id " +
+            "WHERE tt.technicien_id = :technicienId AND p.status = 'COMPLETED'",
+            nativeQuery = true)
+    long countCompletedProjectsByTechnicienNative(@Param("technicienId") Long technicienId);
+
+    // Méthode de debug pour vérifier les relations
+    @Query(value = "SELECT " +
+            "u.id, u.first_name, u.last_name, " +
+            "COUNT(t.id) as task_count, " +
+            "COUNT(CASE WHEN t.status = 'IN_PROGRESS' THEN 1 END) as active_tasks, " +
+            "COUNT(CASE WHEN t.status = 'COMPLETED' THEN 1 END) as completed_tasks " +
+            "FROM users u " +
+            "LEFT JOIN task_technicien tt ON u.id = tt.technicien_id " +
+            "LEFT JOIN tasks t ON tt.task_id = t.id " +
+            "WHERE u.user_type = 'TECHNICIEN' " +
+            "GROUP BY u.id, u.first_name, u.last_name " +
+            "ORDER BY u.id",
+            nativeQuery = true)
+    List<Object[]> debugTechnicienStats();
 }
