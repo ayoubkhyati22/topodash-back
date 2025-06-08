@@ -6,8 +6,9 @@ import com.topographe.topographe.dto.response.PageResponse;
 import com.topographe.topographe.dto.response.ClientResponse;
 import com.topographe.topographe.entity.Client;
 import com.topographe.topographe.entity.Topographe;
+import com.topographe.topographe.entity.User;
 import com.topographe.topographe.entity.enumm.ClientType;
-import com.topographe.topographe.entity.enumm.ProjectStatus;
+import com.topographe.topographe.entity.enumm.Role;
 import com.topographe.topographe.entity.referentiel.City;
 import com.topographe.topographe.exception.DuplicateResourceException;
 import com.topographe.topographe.exception.ResourceNotFoundException;
@@ -44,13 +45,25 @@ public class ClientServiceImpl implements ClientService {
 
     @Override
     @Transactional
-    public ClientResponse createClient(ClientCreateRequest request) {
+    public ClientResponse createClient(ClientCreateRequest request, User currentUser) {
         // Vérifier les doublons
         validateUniqueFields(request);
 
-        // Récupérer le topographe créateur
-        Topographe createdBy = topographeRepository.findById(request.getCreatedByTopographeId())
-                .orElseThrow(() -> new ResourceNotFoundException("Topographe non trouvé avec l'ID: " + request.getCreatedByTopographeId()));
+        // Déterminer le topographe créateur selon le rôle
+        Topographe createdBy;
+        if (currentUser.getRole() == Role.ADMIN) {
+            // L'admin doit spécifier le topographe
+            if (request.getCreatedByTopographeId() == null) {
+                throw new IllegalArgumentException("L'administrateur doit spécifier le topographe responsable");
+            }
+            createdBy = topographeRepository.findById(request.getCreatedByTopographeId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Topographe non trouvé avec l'ID: " + request.getCreatedByTopographeId()));
+        } else if (currentUser.getRole() == Role.TOPOGRAPHE) {
+            // Pour un topographe, l'affectation est automatique
+            createdBy = (Topographe) currentUser;
+        } else {
+            throw new IllegalArgumentException("Seuls les administrateurs et topographes peuvent créer des clients");
+        }
 
         // Vérifier que le topographe est actif
         if (!createdBy.getIsActive()) {
@@ -75,13 +88,23 @@ public class ClientServiceImpl implements ClientService {
     }
 
     @Override
-    public PageResponse<ClientResponse> getAllClients(int page, int size, String sortBy, String sortDir) {
+    public PageResponse<ClientResponse> getAllClients(int page, int size, String sortBy, String sortDir, User currentUser) {
         Sort sort = sortDir.equalsIgnoreCase("desc") ?
                 Sort.by(sortBy).descending() :
                 Sort.by(sortBy).ascending();
 
         Pageable pageable = PageRequest.of(page, size, sort);
-        Page<Client> clientPage = clientRepository.findAll(pageable);
+        Page<Client> clientPage;
+
+        if (currentUser.getRole() == Role.ADMIN) {
+            // L'admin voit tous les clients
+            clientPage = clientRepository.findAll(pageable);
+        } else if (currentUser.getRole() == Role.TOPOGRAPHE) {
+            // Le topographe ne voit que ses clients
+            clientPage = clientRepository.findByCreatedById(currentUser.getId(), pageable);
+        } else {
+            throw new IllegalArgumentException("Accès non autorisé");
+        }
 
         return buildPageResponseWithStats(clientPage);
     }
@@ -90,22 +113,38 @@ public class ClientServiceImpl implements ClientService {
     public PageResponse<ClientResponse> getClientsWithFilters(
             int page, int size, String sortBy, String sortDir,
             ClientType clientType, String cityName, Boolean isActive,
-            Long topographeId, String companyName) {
+            Long topographeId, String companyName, User currentUser) {
 
         Sort sort = sortDir.equalsIgnoreCase("desc") ?
                 Sort.by(sortBy).descending() :
                 Sort.by(sortBy).ascending();
 
         Pageable pageable = PageRequest.of(page, size, sort);
-        Page<Client> clientPage = clientRepository.findWithFilters(
-                clientType, cityName, isActive, topographeId, companyName, pageable);
+        Page<Client> clientPage;
+
+        if (currentUser.getRole() == Role.ADMIN) {
+            // L'admin peut chercher avec tous les filtres
+            clientPage = clientRepository.findWithFilters(
+                    clientType, cityName, isActive, topographeId, companyName, pageable);
+        } else if (currentUser.getRole() == Role.TOPOGRAPHE) {
+            // Le topographe ne peut chercher que parmi ses clients
+            clientPage = clientRepository.findWithFilters(
+                    clientType, cityName, isActive, currentUser.getId(), companyName, pageable);
+        } else {
+            throw new IllegalArgumentException("Accès non autorisé");
+        }
 
         return buildPageResponseWithStats(clientPage);
     }
 
     @Override
     public PageResponse<ClientResponse> getClientsByTopographe(
-            Long topographeId, int page, int size, String sortBy, String sortDir) {
+            Long topographeId, int page, int size, String sortBy, String sortDir, User currentUser) {
+
+        // Vérifications de sécurité
+        if (currentUser.getRole() == Role.TOPOGRAPHE && !currentUser.getId().equals(topographeId)) {
+            throw new IllegalArgumentException("Un topographe ne peut voir que ses propres clients");
+        }
 
         // Vérifier que le topographe existe
         if (!topographeRepository.existsById(topographeId)) {
@@ -123,19 +162,29 @@ public class ClientServiceImpl implements ClientService {
     }
 
     @Override
-    public ClientResponse getClientById(Long id) {
-        // Récupérer le client
+    public ClientResponse getClientById(Long id, User currentUser) {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé avec l'ID: " + id));
 
-        // Utiliser la méthode qui calcule les statistiques via des requêtes directes
+        // Vérifications de sécurité
+        if (currentUser.getRole() == Role.TOPOGRAPHE &&
+                !client.getCreatedBy().getId().equals(currentUser.getId())) {
+            throw new IllegalArgumentException("Un topographe ne peut voir que ses propres clients");
+        }
+
         return buildClientResponseWithStats(client);
     }
 
     @Override
     @Transactional
-    public ClientResponse updateClient(Long id, ClientUpdateRequest request) {
+    public ClientResponse updateClient(Long id, ClientUpdateRequest request, User currentUser) {
         Client client = findClientById(id);
+
+        // Vérifications de sécurité
+        if (currentUser.getRole() == Role.TOPOGRAPHE &&
+                !client.getCreatedBy().getId().equals(currentUser.getId())) {
+            throw new IllegalArgumentException("Un topographe ne peut modifier que ses propres clients");
+        }
 
         // Vérifier les doublons (exclure l'utilisateur actuel)
         validateUniqueFieldsForUpdate(request, id);
@@ -156,8 +205,14 @@ public class ClientServiceImpl implements ClientService {
 
     @Override
     @Transactional
-    public void deleteClient(Long id) {
+    public void deleteClient(Long id, User currentUser) {
         Client client = findClientById(id);
+
+        // Vérifications de sécurité
+        if (currentUser.getRole() == Role.TOPOGRAPHE &&
+                !client.getCreatedBy().getId().equals(currentUser.getId())) {
+            throw new IllegalArgumentException("Un topographe ne peut supprimer que ses propres clients");
+        }
 
         // Vérifier s'il a des projets
         long projectCount = projectRepository.countByClientId(id);
@@ -170,45 +225,66 @@ public class ClientServiceImpl implements ClientService {
 
     @Override
     @Transactional
-    public void activateClient(Long id) {
+    public void activateClient(Long id, User currentUser) {
         Client client = findClientById(id);
+
+        // Vérifications de sécurité
+        if (currentUser.getRole() == Role.TOPOGRAPHE &&
+                !client.getCreatedBy().getId().equals(currentUser.getId())) {
+            throw new IllegalArgumentException("Un topographe ne peut activer que ses propres clients");
+        }
+
         client.setIsActive(true);
         clientRepository.save(client);
     }
 
     @Override
     @Transactional
-    public void deactivateClient(Long id) {
+    public void deactivateClient(Long id, User currentUser) {
         Client client = findClientById(id);
+
+        // Vérifications de sécurité
+        if (currentUser.getRole() == Role.TOPOGRAPHE &&
+                !client.getCreatedBy().getId().equals(currentUser.getId())) {
+            throw new IllegalArgumentException("Un topographe ne peut désactiver que ses propres clients");
+        }
+
         client.setIsActive(false);
         clientRepository.save(client);
     }
 
     @Override
-    public long getTotalActiveClients() {
-        return clientRepository.countActiveClients();
+    public long getTotalActiveClients(User currentUser) {
+        if (currentUser.getRole() == Role.ADMIN) {
+            return clientRepository.countActiveClients();
+        } else if (currentUser.getRole() == Role.TOPOGRAPHE) {
+            return clientRepository.countByCreatedById(currentUser.getId());
+        } else {
+            throw new IllegalArgumentException("Accès non autorisé");
+        }
     }
 
     @Override
-    public long getClientCountByTopographe(Long topographeId) {
-        return clientRepository.countByTopographeId(topographeId);
+    public long getClientCountByTopographe(Long topographeId, User currentUser) {
+        // Vérifications de sécurité
+        if (currentUser.getRole() == Role.TOPOGRAPHE && !currentUser.getId().equals(topographeId)) {
+            throw new IllegalArgumentException("Un topographe ne peut voir que ses propres statistiques");
+        }
+
+        return clientRepository.countByCreatedById(topographeId);
     }
 
-    // Méthodes utilitaires
+    // Méthodes utilitaires (restent identiques)
 
     private Client findClientById(Long id) {
         return clientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé avec l'ID: " + id));
     }
 
-    /**
-     * Construit une ClientResponse avec les statistiques calculées via le repository
-     */
     private ClientResponse buildClientResponseWithStats(Client client) {
         ClientResponse response = clientMapper.toResponse(client);
 
         try {
-            // Toujours recalculer les statistiques via des requêtes directes pour assurer la cohérence
             long totalProjects = projectRepository.countTotalProjectsByClientId(client.getId());
             long activeProjects = projectRepository.countActiveProjectsByClientId(client.getId());
             long completedProjects = projectRepository.countCompletedProjectsByClientId(client.getId());
@@ -222,15 +298,11 @@ public class ClientServiceImpl implements ClientService {
 
         } catch (Exception e) {
             log.error("Erreur lors du calcul des statistiques pour le client {}: {}", client.getId(), e.getMessage());
-            // Garder les valeurs par défaut (0) en cas d'erreur
         }
 
         return response;
     }
 
-    /**
-     * Construit une PageResponse avec les statistiques pour chaque client
-     */
     private PageResponse<ClientResponse> buildPageResponseWithStats(Page<Client> clientPage) {
         List<ClientResponse> clientResponses = clientPage.getContent()
                 .stream()
@@ -266,7 +338,6 @@ public class ClientServiceImpl implements ClientService {
     }
 
     private void validateUniqueFieldsForUpdate(ClientUpdateRequest request, Long clientId) {
-        // Vérifier email (exclure l'utilisateur actuel)
         clientRepository.findByEmail(request.getEmail())
                 .ifPresent(existing -> {
                     if (!existing.getId().equals(clientId)) {
@@ -274,7 +345,6 @@ public class ClientServiceImpl implements ClientService {
                     }
                 });
 
-        // Vérifier téléphone (exclure l'utilisateur actuel)
         clientRepository.findByPhoneNumber(request.getPhoneNumber())
                 .ifPresent(existing -> {
                     if (!existing.getId().equals(clientId)) {
