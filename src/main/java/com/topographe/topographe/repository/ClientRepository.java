@@ -25,7 +25,25 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
     boolean existsByCin(String cin);
     boolean existsByPhoneNumber(String phoneNumber);
 
-    // Recherche avec filtres
+    // Méthode pour récupérer un client avec ses projets (pour les statistiques)
+    @Query("SELECT c FROM Client c LEFT JOIN FETCH c.projects WHERE c.id = :id")
+    Optional<Client> findByIdWithProjects(@Param("id") Long id);
+
+    // Recherche avec filtres - version avec fetch des projets pour les statistiques
+    @Query("SELECT DISTINCT c FROM Client c " +
+            "LEFT JOIN FETCH c.projects p " +
+            "WHERE (:clientType IS NULL OR c.clientType = :clientType) AND " +
+            "(:cityName IS NULL OR LOWER(c.city.name) LIKE LOWER(CONCAT('%', :cityName, '%'))) AND " +
+            "(:isActive IS NULL OR c.isActive = :isActive) AND " +
+            "(:topographeId IS NULL OR c.createdBy.id = :topographeId) AND " +
+            "(:companyName IS NULL OR LOWER(c.companyName) LIKE LOWER(CONCAT('%', :companyName, '%')))")
+    List<Client> findWithFiltersAndProjects(@Param("clientType") ClientType clientType,
+                                            @Param("cityName") String cityName,
+                                            @Param("isActive") Boolean isActive,
+                                            @Param("topographeId") Long topographeId,
+                                            @Param("companyName") String companyName);
+
+    // Recherche avec filtres - version originale pour la pagination
     @Query("SELECT c FROM Client c WHERE " +
             "(:clientType IS NULL OR c.clientType = :clientType) AND " +
             "(:cityName IS NULL OR LOWER(c.city.name) LIKE LOWER(CONCAT('%', :cityName, '%'))) AND " +
@@ -39,7 +57,11 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
                                  @Param("companyName") String companyName,
                                  Pageable pageable);
 
-    // Clients par topographe
+    // Clients par topographe avec projets
+    @Query("SELECT DISTINCT c FROM Client c LEFT JOIN FETCH c.projects WHERE c.createdBy.id = :topographeId")
+    List<Client> findByCreatedByIdWithProjects(@Param("topographeId") Long topographeId);
+
+    // Clients par topographe - version originale pour la pagination
     Page<Client> findByCreatedById(Long topographeId, Pageable pageable);
 
     // Clients actifs

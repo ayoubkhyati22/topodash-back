@@ -52,7 +52,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     @Query("SELECT p FROM Project p WHERE p.status IN ('PLANNING', 'IN_PROGRESS')")
     List<Project> findActiveProjects();
 
-    // Statistiques
+    // Statistiques générales
     @Query("SELECT COUNT(p) FROM Project p WHERE p.status = :status")
     long countByStatus(@Param("status") ProjectStatus status);
 
@@ -64,6 +64,16 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
 
     @Query("SELECT p.status, COUNT(p) FROM Project p GROUP BY p.status")
     List<Object[]> countByStatusGrouped();
+
+    // Statistiques spécifiques par client - NOUVELLES MÉTHODES
+    @Query("SELECT COUNT(p) FROM Project p WHERE p.client.id = :clientId AND p.status IN ('PLANNING', 'IN_PROGRESS')")
+    long countActiveProjectsByClientId(@Param("clientId") Long clientId);
+
+    @Query("SELECT COUNT(p) FROM Project p WHERE p.client.id = :clientId AND p.status = 'COMPLETED'")
+    long countCompletedProjectsByClientId(@Param("clientId") Long clientId);
+
+    @Query("SELECT COUNT(p) FROM Project p WHERE p.client.id = :clientId")
+    long countTotalProjectsByClientId(@Param("clientId") Long clientId);
 
     // Projets par période
     @Query("SELECT p FROM Project p WHERE p.startDate BETWEEN :startDate AND :endDate")

@@ -5,6 +5,7 @@ import com.topographe.topographe.dto.request.ClientUpdateRequest;
 import com.topographe.topographe.dto.response.ClientResponse;
 import com.topographe.topographe.entity.Client;
 import com.topographe.topographe.entity.Topographe;
+import com.topographe.topographe.entity.enumm.ProjectStatus;
 import com.topographe.topographe.entity.enumm.Role;
 import com.topographe.topographe.entity.referentiel.City;
 import org.springframework.stereotype.Component;
@@ -63,21 +64,11 @@ public class ClientMapper {
         response.setCreatedAt(client.getCreatedAt());
         response.setIsActive(client.getIsActive());
 
-        // Statistiques des projets
-        if (client.getProjects() != null) {
-            response.setTotalProjects(client.getProjects().size());
-            response.setActiveProjects((int) client.getProjects().stream()
-                    .filter(project -> project.getStatus().name().equals("IN_PROGRESS") ||
-                            project.getStatus().name().equals("PLANNING"))
-                    .count());
-            response.setCompletedProjects((int) client.getProjects().stream()
-                    .filter(project -> project.getStatus().name().equals("COMPLETED"))
-                    .count());
-        } else {
-            response.setTotalProjects(0);
-            response.setActiveProjects(0);
-            response.setCompletedProjects(0);
-        }
+        // Initialiser les statistiques à 0 par défaut
+        // Ces valeurs seront recalculées dans le service via des requêtes directes
+        response.setTotalProjects(0);
+        response.setActiveProjects(0);
+        response.setCompletedProjects(0);
 
         return response;
     }

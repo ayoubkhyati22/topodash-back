@@ -21,7 +21,7 @@ public class ClientController {
 
     private final ClientService clientService;
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TOPOGRAPHE')")
     @PostMapping
     public ResponseEntity<ApiResponse<ClientResponse>> createClient(
             @Valid @RequestBody ClientCreateRequest request) {
@@ -34,7 +34,7 @@ public class ClientController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TOPOGRAPHE')")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ClientResponse>>> getAllClients(
             @RequestParam(defaultValue = "0") int page,
@@ -51,7 +51,7 @@ public class ClientController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TOPOGRAPHE')")
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<ClientResponse>>> searchClients(
             @RequestParam(defaultValue = "0") int page,
@@ -75,7 +75,7 @@ public class ClientController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TOPOGRAPHE')")
     @GetMapping("/topographe/{topographeId}")
     public ResponseEntity<ApiResponse<PageResponse<ClientResponse>>> getClientsByTopographe(
             @PathVariable Long topographeId,
@@ -95,7 +95,7 @@ public class ClientController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TOPOGRAPHE')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ClientResponse>> getClientById(@PathVariable Long id) {
         ClientResponse clientResponse = clientService.getClientById(id);
@@ -107,7 +107,7 @@ public class ClientController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TOPOGRAPHE')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<ClientResponse>> updateClient(
             @PathVariable Long id,
@@ -122,7 +122,7 @@ public class ClientController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TOPOGRAPHE')")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<String>> deleteClient(@PathVariable Long id) {
         clientService.deleteClient(id);
@@ -134,7 +134,7 @@ public class ClientController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TOPOGRAPHE')")
     @PatchMapping("/{id}/activate")
     public ResponseEntity<ApiResponse<String>> activateClient(@PathVariable Long id) {
         clientService.activateClient(id);
@@ -146,7 +146,7 @@ public class ClientController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TOPOGRAPHE')")
     @PatchMapping("/{id}/deactivate")
     public ResponseEntity<ApiResponse<String>> deactivateClient(@PathVariable Long id) {
         clientService.deactivateClient(id);
@@ -158,7 +158,7 @@ public class ClientController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TOPOGRAPHE')")
     @GetMapping("/stats/total")
     public ResponseEntity<ApiResponse<Long>> getTotalActiveClients() {
         long total = clientService.getTotalActiveClients();
@@ -170,7 +170,7 @@ public class ClientController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TOPOGRAPHE')")
     @GetMapping("/stats/topographe/{topographeId}")
     public ResponseEntity<ApiResponse<Long>> getClientCountByTopographe(@PathVariable Long topographeId) {
         long count = clientService.getClientCountByTopographe(topographeId);

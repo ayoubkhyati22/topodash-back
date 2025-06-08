@@ -7,15 +7,18 @@ import com.topographe.topographe.dto.response.ClientResponse;
 import com.topographe.topographe.entity.Client;
 import com.topographe.topographe.entity.Topographe;
 import com.topographe.topographe.entity.enumm.ClientType;
+import com.topographe.topographe.entity.enumm.ProjectStatus;
 import com.topographe.topographe.entity.referentiel.City;
 import com.topographe.topographe.exception.DuplicateResourceException;
 import com.topographe.topographe.exception.ResourceNotFoundException;
 import com.topographe.topographe.mapper.ClientMapper;
 import com.topographe.topographe.repository.ClientRepository;
+import com.topographe.topographe.repository.ProjectRepository;
 import com.topographe.topographe.repository.referentiel.CityRepository;
 import com.topographe.topographe.repository.TopographeRepository;
 import com.topographe.topographe.service.ClientService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,11 +32,13 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ClientServiceImpl implements ClientService {
 
     private final ClientRepository clientRepository;
     private final TopographeRepository topographeRepository;
     private final CityRepository cityRepository;
+    private final ProjectRepository projectRepository;
     private final ClientMapper clientMapper;
     private final PasswordEncoder passwordEncoder;
 
@@ -66,7 +71,7 @@ public class ClientServiceImpl implements ClientService {
         Client client = clientMapper.toEntity(request, city, createdBy, encodedPassword);
         Client savedClient = clientRepository.save(client);
 
-        return clientMapper.toResponse(savedClient);
+        return buildClientResponseWithStats(savedClient);
     }
 
     @Override
@@ -78,7 +83,7 @@ public class ClientServiceImpl implements ClientService {
         Pageable pageable = PageRequest.of(page, size, sort);
         Page<Client> clientPage = clientRepository.findAll(pageable);
 
-        return buildPageResponse(clientPage);
+        return buildPageResponseWithStats(clientPage);
     }
 
     @Override
@@ -95,7 +100,7 @@ public class ClientServiceImpl implements ClientService {
         Page<Client> clientPage = clientRepository.findWithFilters(
                 clientType, cityName, isActive, topographeId, companyName, pageable);
 
-        return buildPageResponse(clientPage);
+        return buildPageResponseWithStats(clientPage);
     }
 
     @Override
@@ -114,13 +119,17 @@ public class ClientServiceImpl implements ClientService {
         Pageable pageable = PageRequest.of(page, size, sort);
         Page<Client> clientPage = clientRepository.findByCreatedById(topographeId, pageable);
 
-        return buildPageResponse(clientPage);
+        return buildPageResponseWithStats(clientPage);
     }
 
     @Override
     public ClientResponse getClientById(Long id) {
-        Client client = findClientById(id);
-        return clientMapper.toResponse(client);
+        // Récupérer le client
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé avec l'ID: " + id));
+
+        // Utiliser la méthode qui calcule les statistiques via des requêtes directes
+        return buildClientResponseWithStats(client);
     }
 
     @Override
@@ -142,7 +151,7 @@ public class ClientServiceImpl implements ClientService {
         clientMapper.updateEntity(client, request, city);
         Client updatedClient = clientRepository.save(client);
 
-        return clientMapper.toResponse(updatedClient);
+        return buildClientResponseWithStats(updatedClient);
     }
 
     @Override
@@ -151,7 +160,8 @@ public class ClientServiceImpl implements ClientService {
         Client client = findClientById(id);
 
         // Vérifier s'il a des projets
-        if (!client.getProjects().isEmpty()) {
+        long projectCount = projectRepository.countByClientId(id);
+        if (projectCount > 0) {
             throw new IllegalStateException("Impossible de supprimer un client qui a des projets");
         }
 
@@ -191,10 +201,40 @@ public class ClientServiceImpl implements ClientService {
                 .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé avec l'ID: " + id));
     }
 
-    private PageResponse<ClientResponse> buildPageResponse(Page<Client> clientPage) {
+    /**
+     * Construit une ClientResponse avec les statistiques calculées via le repository
+     */
+    private ClientResponse buildClientResponseWithStats(Client client) {
+        ClientResponse response = clientMapper.toResponse(client);
+
+        try {
+            // Toujours recalculer les statistiques via des requêtes directes pour assurer la cohérence
+            long totalProjects = projectRepository.countTotalProjectsByClientId(client.getId());
+            long activeProjects = projectRepository.countActiveProjectsByClientId(client.getId());
+            long completedProjects = projectRepository.countCompletedProjectsByClientId(client.getId());
+
+            response.setTotalProjects((int) totalProjects);
+            response.setActiveProjects((int) activeProjects);
+            response.setCompletedProjects((int) completedProjects);
+
+            log.debug("Statistiques calculées pour client {} ({}): total={}, actifs={}, terminés={}",
+                    client.getId(), client.getUsername(), totalProjects, activeProjects, completedProjects);
+
+        } catch (Exception e) {
+            log.error("Erreur lors du calcul des statistiques pour le client {}: {}", client.getId(), e.getMessage());
+            // Garder les valeurs par défaut (0) en cas d'erreur
+        }
+
+        return response;
+    }
+
+    /**
+     * Construit une PageResponse avec les statistiques pour chaque client
+     */
+    private PageResponse<ClientResponse> buildPageResponseWithStats(Page<Client> clientPage) {
         List<ClientResponse> clientResponses = clientPage.getContent()
                 .stream()
-                .map(clientMapper::toResponse)
+                .map(this::buildClientResponseWithStats)
                 .collect(Collectors.toList());
 
         return new PageResponse<>(
