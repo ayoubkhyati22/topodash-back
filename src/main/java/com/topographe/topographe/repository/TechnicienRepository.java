@@ -25,19 +25,44 @@ public interface TechnicienRepository extends JpaRepository<Technicien, Long> {
     boolean existsByCin(String cin);
     boolean existsByPhoneNumber(String phoneNumber);
 
-    // Recherche avec filtres
+    // Recherche avec filtres - Version corrigée avec CAST
     @Query("SELECT t FROM Technicien t WHERE " +
             "(:skillLevel IS NULL OR t.skillLevel = :skillLevel) AND " +
-            "(:cityName IS NULL OR LOWER(t.city.name) LIKE LOWER(CONCAT('%', :cityName, '%'))) AND " +
+            "(:cityName IS NULL OR :cityName = '' OR LOWER(CAST(t.city.name AS string)) LIKE LOWER(CONCAT('%', :cityName, '%'))) AND " +
             "(:isActive IS NULL OR t.isActive = :isActive) AND " +
             "(:topographeId IS NULL OR t.assignedTo.id = :topographeId) AND " +
-            "(:specialties IS NULL OR LOWER(t.specialties) LIKE LOWER(CONCAT('%', :specialties, '%')))")
+            "(:specialties IS NULL OR :specialties = '' OR LOWER(CAST(t.specialties AS string)) LIKE LOWER(CONCAT('%', :specialties, '%')))")
     Page<Technicien> findWithFilters(@Param("skillLevel") SkillLevel skillLevel,
                                      @Param("cityName") String cityName,
                                      @Param("isActive") Boolean isActive,
                                      @Param("topographeId") Long topographeId,
                                      @Param("specialties") String specialties,
                                      Pageable pageable);
+
+    // Alternative avec requête SQL native si la requête JPQL ne fonctionne pas
+    @Query(value = "SELECT * FROM users u " +
+            "JOIN city c ON c.id = u.city_id " +
+            "WHERE u.user_type = 'TECHNICIEN' " +
+            "AND (:skillLevel IS NULL OR :skillLevel = '' OR CAST(u.skill_level AS TEXT) = :skillLevel) " +
+            "AND (:cityName IS NULL OR :cityName = '' OR CAST(c.name AS TEXT) ILIKE CONCAT('%', :cityName, '%')) " +
+            "AND (:isActive IS NULL OR u.is_active = :isActive) " +
+            "AND (:topographeId IS NULL OR u.assigned_to_topographe_id = :topographeId) " +
+            "AND (:specialties IS NULL OR :specialties = '' OR CAST(u.specialties AS TEXT) ILIKE CONCAT('%', :specialties, '%'))",
+            countQuery = "SELECT COUNT(*) FROM users u " +
+                    "JOIN city c ON c.id = u.city_id " +
+                    "WHERE u.user_type = 'TECHNICIEN' " +
+                    "AND (:skillLevel IS NULL OR :skillLevel = '' OR CAST(u.skill_level AS TEXT) = :skillLevel) " +
+                    "AND (:cityName IS NULL OR :cityName = '' OR CAST(c.name AS TEXT) ILIKE CONCAT('%', :cityName, '%')) " +
+                    "AND (:isActive IS NULL OR u.is_active = :isActive) " +
+                    "AND (:topographeId IS NULL OR u.assigned_to_topographe_id = :topographeId) " +
+                    "AND (:specialties IS NULL OR :specialties = '' OR CAST(u.specialties AS TEXT) ILIKE CONCAT('%', :specialties, '%'))",
+            nativeQuery = true)
+    Page<Technicien> findWithFiltersNative(@Param("skillLevel") String skillLevel,
+                                           @Param("cityName") String cityName,
+                                           @Param("isActive") Boolean isActive,
+                                           @Param("topographeId") Long topographeId,
+                                           @Param("specialties") String specialties,
+                                           Pageable pageable);
 
     // Techniciens par topographe
     Page<Technicien> findByAssignedToId(Long topographeId, Pageable pageable);

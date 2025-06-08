@@ -195,16 +195,40 @@ public class TechnicienServiceImpl implements TechnicienService {
             Pageable pageable = PageRequest.of(page, size, sort);
             Page<Technicien> technicienPage;
 
+            // Normaliser les paramètres vides en null
+            String normalizedCityName = (cityName != null && cityName.trim().isEmpty()) ? null : cityName;
+            String normalizedSpecialties = (specialties != null && specialties.trim().isEmpty()) ? null : specialties;
+
             if (currentUser.getRole() == Role.ADMIN) {
                 // L'admin peut chercher avec tous les filtres
                 log.info("Admin search with all filters");
-                technicienPage = technicienRepository.findWithFilters(
-                        skillLevel, cityName, isActive, topographeId, specialties, pageable);
+
+                try {
+                    // Essayer d'abord avec la requête JPQL
+                    technicienPage = technicienRepository.findWithFilters(
+                            skillLevel, normalizedCityName, isActive, topographeId, normalizedSpecialties, pageable);
+                } catch (Exception e) {
+                    // Si la requête JPQL échoue, utiliser la requête native
+                    log.warn("Requête JPQL échouée, utilisation de la requête native: {}", e.getMessage());
+                    String skillLevelStr = skillLevel != null ? skillLevel.name() : null;
+                    technicienPage = technicienRepository.findWithFiltersNative(
+                            skillLevelStr, normalizedCityName, isActive, topographeId, normalizedSpecialties, pageable);
+                }
             } else if (currentUser.getRole() == Role.TOPOGRAPHE) {
                 // Le topographe ne peut chercher que parmi ses techniciens
                 log.info("Topographe search limited to own techniciens, topographeId forced to: {}", currentUser.getId());
-                technicienPage = technicienRepository.findWithFilters(
-                        skillLevel, cityName, isActive, currentUser.getId(), specialties, pageable);
+
+                try {
+                    // Essayer d'abord avec la requête JPQL
+                    technicienPage = technicienRepository.findWithFilters(
+                            skillLevel, normalizedCityName, isActive, currentUser.getId(), normalizedSpecialties, pageable);
+                } catch (Exception e) {
+                    // Si la requête JPQL échoue, utiliser la requête native
+                    log.warn("Requête JPQL échouée, utilisation de la requête native: {}", e.getMessage());
+                    String skillLevelStr = skillLevel != null ? skillLevel.name() : null;
+                    technicienPage = technicienRepository.findWithFiltersNative(
+                            skillLevelStr, normalizedCityName, isActive, currentUser.getId(), normalizedSpecialties, pageable);
+                }
             } else {
                 throw new IllegalArgumentException("Accès non autorisé pour le rôle: " + currentUser.getRole());
             }

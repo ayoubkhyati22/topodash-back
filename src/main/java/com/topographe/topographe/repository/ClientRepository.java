@@ -33,29 +33,54 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
     @Query("SELECT DISTINCT c FROM Client c " +
             "LEFT JOIN FETCH c.projects p " +
             "WHERE (:clientType IS NULL OR c.clientType = :clientType) AND " +
-            "(:cityName IS NULL OR LOWER(c.city.name) LIKE LOWER(CONCAT('%', :cityName, '%'))) AND " +
+            "(:cityName IS NULL OR LOWER(CAST(c.city.name AS string)) LIKE LOWER(CONCAT('%', :cityName, '%'))) AND " +
             "(:isActive IS NULL OR c.isActive = :isActive) AND " +
             "(:topographeId IS NULL OR c.createdBy.id = :topographeId) AND " +
-            "(:companyName IS NULL OR LOWER(c.companyName) LIKE LOWER(CONCAT('%', :companyName, '%')))")
+            "(:companyName IS NULL OR LOWER(CAST(c.companyName AS string)) LIKE LOWER(CONCAT('%', :companyName, '%')))")
     List<Client> findWithFiltersAndProjects(@Param("clientType") ClientType clientType,
                                             @Param("cityName") String cityName,
                                             @Param("isActive") Boolean isActive,
                                             @Param("topographeId") Long topographeId,
                                             @Param("companyName") String companyName);
 
-    // Recherche avec filtres - version originale pour la pagination
+    // Recherche avec filtres - version originale pour la pagination avec CAST
     @Query("SELECT c FROM Client c WHERE " +
             "(:clientType IS NULL OR c.clientType = :clientType) AND " +
-            "(:cityName IS NULL OR :cityName = '' OR LOWER(c.city.name) LIKE LOWER(CONCAT('%', :cityName, '%'))) AND " +
+            "(:cityName IS NULL OR :cityName = '' OR LOWER(CAST(c.city.name AS string)) LIKE LOWER(CONCAT('%', :cityName, '%'))) AND " +
             "(:isActive IS NULL OR c.isActive = :isActive) AND " +
             "(:topographeId IS NULL OR c.createdBy.id = :topographeId) AND " +
-            "(:companyName IS NULL OR :companyName = '' OR LOWER(COALESCE(c.companyName, '')) LIKE LOWER(CONCAT('%', :companyName, '%')))")
+            "(:companyName IS NULL OR :companyName = '' OR LOWER(CAST(COALESCE(c.companyName, '') AS string)) LIKE LOWER(CONCAT('%', :companyName, '%')))")
     Page<Client> findWithFilters(@Param("clientType") ClientType clientType,
                                  @Param("cityName") String cityName,
                                  @Param("isActive") Boolean isActive,
                                  @Param("topographeId") Long topographeId,
                                  @Param("companyName") String companyName,
                                  Pageable pageable);
+
+    // Alternative avec requête SQL native si la requête JPQL ne fonctionne pas
+    @Query(value = "SELECT * FROM users u " +
+            "JOIN city c ON c.id = u.city_id " +
+            "WHERE u.user_type = 'CLIENT' " +
+            "AND (:clientType IS NULL OR :clientType = '' OR CAST(u.client_type AS TEXT) = :clientType) " +
+            "AND (:cityName IS NULL OR :cityName = '' OR CAST(c.name AS TEXT) ILIKE CONCAT('%', :cityName, '%')) " +
+            "AND (:isActive IS NULL OR u.is_active = :isActive) " +
+            "AND (:topographeId IS NULL OR u.created_by_topographe_id = :topographeId) " +
+            "AND (:companyName IS NULL OR :companyName = '' OR CAST(COALESCE(u.company_name, '') AS TEXT) ILIKE CONCAT('%', :companyName, '%'))",
+            countQuery = "SELECT COUNT(*) FROM users u " +
+                    "JOIN city c ON c.id = u.city_id " +
+                    "WHERE u.user_type = 'CLIENT' " +
+                    "AND (:clientType IS NULL OR :clientType = '' OR CAST(u.client_type AS TEXT) = :clientType) " +
+                    "AND (:cityName IS NULL OR :cityName = '' OR CAST(c.name AS TEXT) ILIKE CONCAT('%', :cityName, '%')) " +
+                    "AND (:isActive IS NULL OR u.is_active = :isActive) " +
+                    "AND (:topographeId IS NULL OR u.created_by_topographe_id = :topographeId) " +
+                    "AND (:companyName IS NULL OR :companyName = '' OR CAST(COALESCE(u.company_name, '') AS TEXT) ILIKE CONCAT('%', :companyName, '%'))",
+            nativeQuery = true)
+    Page<Client> findWithFiltersNative(@Param("clientType") String clientType,
+                                       @Param("cityName") String cityName,
+                                       @Param("isActive") Boolean isActive,
+                                       @Param("topographeId") Long topographeId,
+                                       @Param("companyName") String companyName,
+                                       Pageable pageable);
 
     // Clients par topographe avec projets
     @Query("SELECT DISTINCT c FROM Client c LEFT JOIN FETCH c.projects WHERE c.createdBy.id = :topographeId")

@@ -199,16 +199,40 @@ public class ClientServiceImpl implements ClientService {
             Pageable pageable = PageRequest.of(page, size, sort);
             Page<Client> clientPage;
 
+            // Normaliser les paramètres vides en null
+            String normalizedCityName = (cityName != null && cityName.trim().isEmpty()) ? null : cityName;
+            String normalizedCompanyName = (companyName != null && companyName.trim().isEmpty()) ? null : companyName;
+
             if (currentUser.getRole() == Role.ADMIN) {
                 // L'admin peut chercher avec tous les filtres
                 log.info("Admin search with all filters");
-                clientPage = clientRepository.findWithFilters(
-                        clientType, cityName, isActive, topographeId, companyName, pageable);
+
+                try {
+                    // Essayer d'abord avec la requête JPQL
+                    clientPage = clientRepository.findWithFilters(
+                            clientType, normalizedCityName, isActive, topographeId, normalizedCompanyName, pageable);
+                } catch (Exception e) {
+                    // Si la requête JPQL échoue, utiliser la requête native
+                    log.warn("Requête JPQL échouée, utilisation de la requête native: {}", e.getMessage());
+                    String clientTypeStr = clientType != null ? clientType.name() : null;
+                    clientPage = clientRepository.findWithFiltersNative(
+                            clientTypeStr, normalizedCityName, isActive, topographeId, normalizedCompanyName, pageable);
+                }
             } else if (currentUser.getRole() == Role.TOPOGRAPHE) {
                 // Le topographe ne peut chercher que parmi ses clients
                 log.info("Topographe search limited to own clients, topographeId forced to: {}", currentUser.getId());
-                clientPage = clientRepository.findWithFilters(
-                        clientType, cityName, isActive, currentUser.getId(), companyName, pageable);
+
+                try {
+                    // Essayer d'abord avec la requête JPQL
+                    clientPage = clientRepository.findWithFilters(
+                            clientType, normalizedCityName, isActive, currentUser.getId(), normalizedCompanyName, pageable);
+                } catch (Exception e) {
+                    // Si la requête JPQL échoue, utiliser la requête native
+                    log.warn("Requête JPQL échouée, utilisation de la requête native: {}", e.getMessage());
+                    String clientTypeStr = clientType != null ? clientType.name() : null;
+                    clientPage = clientRepository.findWithFiltersNative(
+                            clientTypeStr, normalizedCityName, isActive, currentUser.getId(), normalizedCompanyName, pageable);
+                }
             } else {
                 throw new IllegalArgumentException("Accès non autorisé pour le rôle: " + currentUser.getRole());
             }
