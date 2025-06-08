@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.stream.Collectors;
 
 @Component
 public class ProjectMapper {
@@ -61,50 +62,79 @@ public class ProjectMapper {
         response.setTopographeLicenseNumber(topographe.getLicenseNumber());
 
         // Statistiques des tâches
-        if (project.getTasks() != null) {
-            response.setTotalTasks(project.getTasks().size());
-            response.setTodoTasks((int) project.getTasks().stream()
-                    .filter(task -> task.getStatus() == TaskStatus.TODO)
-                    .count());
-            response.setInProgressTasks((int) project.getTasks().stream()
-                    .filter(task -> task.getStatus() == TaskStatus.IN_PROGRESS)
-                    .count());
-            response.setReviewTasks((int) project.getTasks().stream()
-                    .filter(task -> task.getStatus() == TaskStatus.REVIEW)
-                    .count());
-            response.setCompletedTasks((int) project.getTasks().stream()
-                    .filter(task -> task.getStatus() == TaskStatus.COMPLETED)
-                    .count());
+        response.setTotalTasks(project.getTotalTasksCount());
+        response.setTodoTasks((int) project.getTodoTasksCount());
+        response.setInProgressTasks((int) project.getInProgressTasksCount());
+        response.setReviewTasks((int) project.getReviewTasksCount());
+        response.setCompletedTasks((int) project.getCompletedTasksCount());
 
-            // Calcul du pourcentage de progression
-            if (response.getTotalTasks() > 0) {
-                double progress = ((double) response.getCompletedTasks() / response.getTotalTasks()) * 100;
-                response.setProgressPercentage(Math.round(progress * 100.0) / 100.0);
-            } else {
-                response.setProgressPercentage(0.0);
-            }
-        } else {
-            response.setTotalTasks(0);
-            response.setTodoTasks(0);
-            response.setInProgressTasks(0);
-            response.setReviewTasks(0);
-            response.setCompletedTasks(0);
-            response.setProgressPercentage(0.0);
-        }
+        // Calcul des pourcentages de progression
+        response.setProgressPercentage(project.getProgressPercentage());
+        response.setWeightedProgressPercentage(project.getWeightedProgressPercentage());
 
-        // Calcul des jours restants et du retard
+        // Informations temporelles
         LocalDate today = LocalDate.now();
-        response.setIsCompleted(project.getStatus() == com.topographe.topographe.entity.enumm.ProjectStatus.COMPLETED);
+        response.setIsCompleted(project.isCompleted());
 
         if (project.getEndDate() != null) {
-            long daysRemaining = ChronoUnit.DAYS.between(today, project.getEndDate());
-            response.setDaysRemaining((int) daysRemaining);
-            response.setIsOverdue(daysRemaining < 0 && !response.getIsCompleted());
+            Long daysRemaining = project.getDaysRemaining();
+            response.setDaysRemaining(daysRemaining != null ? daysRemaining.intValue() : null);
+            response.setIsOverdue(project.isOverdue());
         } else {
             response.setDaysRemaining(null);
             response.setIsOverdue(false);
         }
 
+        // Informations sur les techniciens
+        response.setAssignedTechniciensCount(project.getAssignedTechniciensCount());
+        response.setAssignedTechniciensNames(
+                project.getAssignedTechniciens().stream()
+                        .map(tech -> tech.getFirstName() + " " + tech.getLastName())
+                        .collect(Collectors.joining(", "))
+        );
+
+        // Calcul des durées
+        if (project.getStartDate() != null) {
+            if (project.getEndDate() != null) {
+                int totalDuration = (int) ChronoUnit.DAYS.between(project.getStartDate(), project.getEndDate());
+                response.setTotalDuration(totalDuration);
+
+                int elapsedDuration = (int) ChronoUnit.DAYS.between(project.getStartDate(), today);
+                response.setElapsedDuration(Math.max(0, elapsedDuration));
+
+                if (totalDuration > 0) {
+                    double timeProgress = Math.min(((double) elapsedDuration / totalDuration) * 100, 100);
+                    response.setTimeProgressPercentage(Math.round(timeProgress * 100.0) / 100.0);
+                }
+            }
+        }
+
+        // Évaluation de la santé du projet
+        evaluateProjectHealth(response);
+
         return response;
+    }
+
+    private void evaluateProjectHealth(ProjectResponse response) {
+        // Logique d'évaluation de la santé du projet
+        double progressPercentage = response.getProgressPercentage() != null ? response.getProgressPercentage() : 0;
+        double timeProgressPercentage = response.getTimeProgressPercentage() != null ? response.getTimeProgressPercentage() : 0;
+
+        if (response.getIsOverdue()) {
+            response.setHealthStatus("CRITICAL");
+            response.setHealthMessage("Projet en retard - Action immédiate requise");
+        } else if (timeProgressPercentage > progressPercentage + 20) {
+            response.setHealthStatus("WARNING");
+            response.setHealthMessage("Retard détecté - Surveillance recommandée");
+        } else if (progressPercentage >= 90) {
+            response.setHealthStatus("GOOD");
+            response.setHealthMessage("Projet en bonne voie de finalisation");
+        } else if (timeProgressPercentage <= progressPercentage + 10) {
+            response.setHealthStatus("GOOD");
+            response.setHealthMessage("Projet dans les temps");
+        } else {
+            response.setHealthStatus("WARNING");
+            response.setHealthMessage("Progression légèrement en retard");
+        }
     }
 }

@@ -8,6 +8,7 @@ import com.topographe.topographe.dto.response.PageResponse;
 import com.topographe.topographe.dto.response.TaskResponse;
 import com.topographe.topographe.entity.enumm.TaskStatus;
 import com.topographe.topographe.service.TaskService;
+import com.topographe.topographe.service.impl.TaskServiceImpl;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -24,6 +25,7 @@ import java.util.List;
 public class TaskController {
 
     private final TaskService taskService;
+    private final TaskServiceImpl taskServiceImpl; // Pour accéder aux nouvelles méthodes
 
     @PostMapping
     public ResponseEntity<ApiResponse<TaskResponse>> createTask(
@@ -192,7 +194,7 @@ public class TaskController {
         return ResponseEntity.ok(response);
     }
 
-    // Gestion des assignations
+    // Gestion des assignations multiples
 
     @PostMapping("/{taskId}/assign")
     public ResponseEntity<ApiResponse<TaskResponse>> assignTask(
@@ -201,7 +203,7 @@ public class TaskController {
 
         TaskResponse taskResponse = taskService.assignTask(taskId, request);
         ApiResponse<TaskResponse> response = new ApiResponse<>(
-                "Tâche assignée avec succès",
+                "Techniciens assignés avec succès à la tâche",
                 taskResponse,
                 HttpStatus.OK.value()
         );
@@ -212,14 +214,42 @@ public class TaskController {
     public ResponseEntity<ApiResponse<TaskResponse>> unassignTask(@PathVariable Long taskId) {
         TaskResponse taskResponse = taskService.unassignTask(taskId);
         ApiResponse<TaskResponse> response = new ApiResponse<>(
-                "Tâche désassignée avec succès",
+                "Tous les techniciens désassignés de la tâche",
                 taskResponse,
                 HttpStatus.OK.value()
         );
         return ResponseEntity.ok(response);
     }
 
-    @PutMapping("/{taskId}/assign/{newTechnicienId}")
+    @PostMapping("/{taskId}/assign/{technicienId}")
+    public ResponseEntity<ApiResponse<TaskResponse>> addTechnicienToTask(
+            @PathVariable Long taskId,
+            @PathVariable Long technicienId) {
+
+        TaskResponse taskResponse = taskServiceImpl.addTechnicienToTask(taskId, technicienId);
+        ApiResponse<TaskResponse> response = new ApiResponse<>(
+                "Technicien ajouté à la tâche avec succès",
+                taskResponse,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{taskId}/assign/{technicienId}")
+    public ResponseEntity<ApiResponse<TaskResponse>> removeTechnicienFromTask(
+            @PathVariable Long taskId,
+            @PathVariable Long technicienId) {
+
+        TaskResponse taskResponse = taskServiceImpl.removeTechnicienFromTask(taskId, technicienId);
+        ApiResponse<TaskResponse> response = new ApiResponse<>(
+                "Technicien retiré de la tâche avec succès",
+                taskResponse,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{taskId}/reassign/{newTechnicienId}")
     public ResponseEntity<ApiResponse<TaskResponse>> reassignTask(
             @PathVariable Long taskId,
             @PathVariable Long newTechnicienId) {
@@ -287,6 +317,23 @@ public class TaskController {
         TaskResponse taskResponse = taskService.resetTaskToTodo(id);
         ApiResponse<TaskResponse> response = new ApiResponse<>(
                 "Tâche remise à TODO avec succès",
+                taskResponse,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    // Gestion du pourcentage de progression
+
+    @PatchMapping("/{id}/progress")
+    public ResponseEntity<ApiResponse<TaskResponse>> updateTaskProgress(
+            @PathVariable Long id,
+            @RequestParam Integer progressPercentage,
+            @RequestParam(required = false) String progressNotes) {
+
+        TaskResponse taskResponse = taskServiceImpl.updateTaskProgress(id, progressPercentage, progressNotes);
+        ApiResponse<TaskResponse> response = new ApiResponse<>(
+                "Progression de la tâche mise à jour avec succès",
                 taskResponse,
                 HttpStatus.OK.value()
         );
@@ -368,7 +415,7 @@ public class TaskController {
         return ResponseEntity.ok(response);
     }
 
-    // Statistiques
+    // Statistiques détaillées
 
     @GetMapping("/stats/status/{status}")
     public ResponseEntity<ApiResponse<Long>> getTaskCountByStatus(@PathVariable TaskStatus status) {
@@ -409,6 +456,44 @@ public class TaskController {
         ApiResponse<Long> response = new ApiResponse<>(
                 "Nombre de tâches du topographe récupéré avec succès",
                 count,
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    // Nouvelles statistiques pour le dashboard
+
+    @GetMapping("/stats/workload")
+    public ResponseEntity<ApiResponse<List<Object[]>>> getWorkloadByTechnicien() {
+        // Cette méthode devrait être implémentée dans le service
+        ApiResponse<List<Object[]>> response = new ApiResponse<>(
+                "Charge de travail par technicien récupérée avec succès",
+                null, // À implémenter
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/stats/completion-rate")
+    public ResponseEntity<ApiResponse<Object>> getCompletionRate(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+
+        // Calcul du taux de completion sur une période
+        ApiResponse<Object> response = new ApiResponse<>(
+                "Taux de completion calculé avec succès",
+                null, // À implémenter
+                HttpStatus.OK.value()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/stats/progress-summary")
+    public ResponseEntity<ApiResponse<Object>> getProgressSummary() {
+        // Résumé de la progression de toutes les tâches
+        ApiResponse<Object> response = new ApiResponse<>(
+                "Résumé de progression récupéré avec succès",
+                null, // À implémenter
                 HttpStatus.OK.value()
         );
         return ResponseEntity.ok(response);

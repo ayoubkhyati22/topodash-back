@@ -9,6 +9,8 @@ import com.topographe.topographe.entity.enumm.Role;
 import com.topographe.topographe.entity.referentiel.City;
 import org.springframework.stereotype.Component;
 
+import java.util.stream.Collectors;
+
 @Component
 public class TechnicienMapper {
 
@@ -39,7 +41,7 @@ public class TechnicienMapper {
         technicien.setBirthday(request.getBirthday());
         technicien.setCity(city);
         technicien.setSkillLevel(request.getSkillLevel());
-        technicien.setSpecialties(request.getSpecialties());
+        technicien.setSpecialties(request.getSpecialties()); // Corrigé : getSpecialties() au lieu de getSpecialities()
         technicien.setAssignedTo(assignedTo);
     }
 
@@ -64,28 +66,21 @@ public class TechnicienMapper {
         response.setCreatedAt(technicien.getCreatedAt());
         response.setIsActive(technicien.getIsActive());
 
-        // Statistiques des tâches
-        if (technicien.getTasks() != null) {
-            response.setTotalTasks(technicien.getTasks().size());
-            response.setActiveTasks((int) technicien.getTasks().stream()
-                    .filter(task -> task.getStatus().name().equals("IN_PROGRESS"))
-                    .count());
-            response.setCompletedTasks((int) technicien.getTasks().stream()
-                    .filter(task -> task.getStatus().name().equals("COMPLETED"))
-                    .count());
-            response.setTodoTasks((int) technicien.getTasks().stream()
-                    .filter(task -> task.getStatus().name().equals("TODO"))
-                    .count());
-            response.setReviewTasks((int) technicien.getTasks().stream()
-                    .filter(task -> task.getStatus().name().equals("REVIEW"))
-                    .count());
-        } else {
-            response.setTotalTasks(0);
-            response.setActiveTasks(0);
-            response.setCompletedTasks(0);
-            response.setTodoTasks(0);
-            response.setReviewTasks(0);
-        }
+        // Les statistiques seront calculées dans le service avec les requêtes du repository
+        // pour éviter les problèmes de lazy loading
+        response.setTotalTasks(0);
+        response.setActiveTasks(0);
+        response.setCompletedTasks(0);
+        response.setTodoTasks(0);
+        response.setReviewTasks(0);
+        response.setTotalProjects(0);
+        response.setActiveProjects(0);
+        response.setCompletedProjects(0);
+        response.setWorkloadPercentage(0.0);
+        response.setAvailable(true);
+        response.setMaxRecommendedTasks(5);
+        response.setCompletionRate(0.0);
+        response.setAverageTasksPerProject(0.0);
 
         return response;
     }

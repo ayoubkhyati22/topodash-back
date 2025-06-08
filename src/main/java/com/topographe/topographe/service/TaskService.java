@@ -44,7 +44,7 @@ public interface TaskService {
 
     void deleteTask(Long id);
 
-    // Gestion des assignations
+    // Gestion des assignations multiples
     TaskResponse assignTask(Long taskId, TaskAssignRequest request);
 
     TaskResponse unassignTask(Long taskId);

@@ -67,9 +67,10 @@ public interface TechnicienRepository extends JpaRepository<Technicien, Long> {
     // Techniciens par topographe
     Page<Technicien> findByAssignedToId(Long topographeId, Pageable pageable);
 
-    // Techniciens disponibles (actifs et avec peu de tâches)
+    // Techniciens disponibles (actifs et avec peu de tâches) - CORRIGÉ
     @Query("SELECT t FROM Technicien t WHERE t.isActive = true AND " +
-            "(SELECT COUNT(task) FROM Task task WHERE task.assignedTechnicien = t AND task.status IN ('TODO', 'IN_PROGRESS')) < :maxTasks")
+            "(SELECT COUNT(task) FROM Task task JOIN task.assignedTechniciens assignedTech " +
+            "WHERE assignedTech = t AND task.status IN ('TODO', 'IN_PROGRESS', 'REVIEW')) < :maxTasks")
     List<Technicien> findAvailableTechniciens(@Param("maxTasks") int maxTasks);
 
     // Techniciens par niveau de compétence
@@ -90,7 +91,7 @@ public interface TechnicienRepository extends JpaRepository<Technicien, Long> {
 
     // Techniciens avec le plus de tâches
     @Query("SELECT t, COUNT(task) as taskCount FROM Technicien t " +
-            "LEFT JOIN t.tasks task " +
+            "LEFT JOIN Task task ON t MEMBER OF task.assignedTechniciens " +
             "WHERE t.isActive = true " +
             "GROUP BY t " +
             "ORDER BY taskCount DESC")
@@ -98,4 +99,32 @@ public interface TechnicienRepository extends JpaRepository<Technicien, Long> {
 
     @Query("SELECT COUNT(t) FROM Technicien t WHERE t.assignedTo.id = :topographeId")
     long countByAssignedToId(@Param("topographeId") Long topographeId);
+
+    // Nouvelles méthodes pour les statistiques Many-to-Many
+
+    // Nombre de tâches par technicien par statut
+    @Query("SELECT COUNT(task) FROM Task task JOIN task.assignedTechniciens tech " +
+            "WHERE tech.id = :technicienId AND task.status = :status")
+    long countTasksByTechnicienAndStatus(@Param("technicienId") Long technicienId,
+                                         @Param("status") com.topographe.topographe.entity.enumm.TaskStatus status);
+
+    // Nombre total de tâches par technicien
+    @Query("SELECT COUNT(task) FROM Task task JOIN task.assignedTechniciens tech " +
+            "WHERE tech.id = :technicienId")
+    long countTasksByTechnicien(@Param("technicienId") Long technicienId);
+
+    // Projets uniques par technicien
+    @Query("SELECT COUNT(DISTINCT task.project) FROM Task task JOIN task.assignedTechniciens tech " +
+            "WHERE tech.id = :technicienId")
+    long countProjectsByTechnicien(@Param("technicienId") Long technicienId);
+
+    // Projets actifs par technicien
+    @Query("SELECT COUNT(DISTINCT task.project) FROM Task task JOIN task.assignedTechniciens tech " +
+            "WHERE tech.id = :technicienId AND task.project.status = 'IN_PROGRESS'")
+    long countActiveProjectsByTechnicien(@Param("technicienId") Long technicienId);
+
+    // Projets terminés par technicien
+    @Query("SELECT COUNT(DISTINCT task.project) FROM Task task JOIN task.assignedTechniciens tech " +
+            "WHERE tech.id = :technicienId AND task.project.status = 'COMPLETED'")
+    long countCompletedProjectsByTechnicien(@Param("technicienId") Long technicienId);
 }

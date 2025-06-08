@@ -526,4 +526,81 @@ public class TechnicienServiceImpl implements TechnicienService {
                     }
                 });
     }
+
+    private TechnicienResponse buildTechnicienResponseWithStats(Technicien technicien) {
+        TechnicienResponse response = technicienMapper.toResponse(technicien);
+
+        try {
+            // Calculer les statistiques des tâches via le repository
+            long totalTasks = technicienRepository.countTasksByTechnicien(technicien.getId());
+            long activeTasks = technicienRepository.countTasksByTechnicienAndStatus(
+                    technicien.getId(), com.topographe.topographe.entity.enumm.TaskStatus.IN_PROGRESS);
+            long completedTasks = technicienRepository.countTasksByTechnicienAndStatus(
+                    technicien.getId(), com.topographe.topographe.entity.enumm.TaskStatus.COMPLETED);
+            long todoTasks = technicienRepository.countTasksByTechnicienAndStatus(
+                    technicien.getId(), com.topographe.topographe.entity.enumm.TaskStatus.TODO);
+            long reviewTasks = technicienRepository.countTasksByTechnicienAndStatus(
+                    technicien.getId(), com.topographe.topographe.entity.enumm.TaskStatus.REVIEW);
+
+            // Calculer les statistiques des projets
+            long totalProjects = technicienRepository.countProjectsByTechnicien(technicien.getId());
+            long activeProjects = technicienRepository.countActiveProjectsByTechnicien(technicien.getId());
+            long completedProjects = technicienRepository.countCompletedProjectsByTechnicien(technicien.getId());
+
+            // Mettre à jour la réponse
+            response.setTotalTasks((int) totalTasks);
+            response.setActiveTasks((int) activeTasks);
+            response.setCompletedTasks((int) completedTasks);
+            response.setTodoTasks((int) todoTasks);
+            response.setReviewTasks((int) reviewTasks);
+            response.setTotalProjects((int) totalProjects);
+            response.setActiveProjects((int) activeProjects);
+            response.setCompletedProjects((int) completedProjects);
+
+            // Calcul des indicateurs de performance
+            double workloadPercentage = Math.min((activeTasks / 5.0) * 100, 100); // Max 5 tâches = 100%
+            response.setWorkloadPercentage(Math.round(workloadPercentage * 100.0) / 100.0);
+            response.setAvailable(activeTasks < 5);
+
+            // Calcul du taux de completion
+            if (totalTasks > 0) {
+                double completionRate = ((double) completedTasks / totalTasks) * 100;
+                response.setCompletionRate(Math.round(completionRate * 100.0) / 100.0);
+            }
+
+            // Calcul de la moyenne de tâches par projet
+            if (totalProjects > 0) {
+                double avgTasksPerProject = (double) totalTasks / totalProjects;
+                response.setAverageTasksPerProject(Math.round(avgTasksPerProject * 100.0) / 100.0);
+            }
+
+            log.debug("Statistiques calculées pour technicien {} ({}): total={}, actifs={}, projets={}",
+                    technicien.getId(), technicien.getUsername(), totalTasks, activeTasks, totalProjects);
+
+        } catch (Exception e) {
+            log.error("Erreur lors du calcul des statistiques pour le technicien {}: {}",
+                    technicien.getId(), e.getMessage());
+        }
+
+        return response;
+    }
+
+    private PageResponse<TechnicienResponse> buildPageResponseWithStats(Page<Technicien> technicienPage) {
+        List<TechnicienResponse> technicienResponses = technicienPage.getContent()
+                .stream()
+                .map(this::buildTechnicienResponseWithStats)
+                .collect(Collectors.toList());
+
+        return new PageResponse<>(
+                technicienResponses,
+                technicienPage.getNumber(),
+                technicienPage.getSize(),
+                technicienPage.getTotalElements(),
+                technicienPage.getTotalPages(),
+                technicienPage.isFirst(),
+                technicienPage.isLast(),
+                technicienPage.hasNext(),
+                technicienPage.hasPrevious()
+        );
+    }
 }

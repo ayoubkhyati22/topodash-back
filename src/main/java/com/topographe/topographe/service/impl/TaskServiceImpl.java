@@ -16,6 +16,7 @@ import com.topographe.topographe.repository.TaskRepository;
 import com.topographe.topographe.repository.TechnicienRepository;
 import com.topographe.topographe.service.TaskService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,11 +25,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TaskServiceImpl implements TaskService {
 
     private final TaskRepository taskRepository;
@@ -39,25 +44,32 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Transactional
     public TaskResponse createTask(TaskCreateRequest request) {
+        log.info("Creating task: {}", request.getTitle());
+
         // Récupérer le projet
         Project project = projectRepository.findById(request.getProjectId())
                 .orElseThrow(() -> new ResourceNotFoundException("Projet non trouvé avec l'ID: " + request.getProjectId()));
 
-        // Vérifier que le projet est actif (pas COMPLETED ou CANCELLED)
+        // Vérifier que le projet est actif
         if (project.getStatus() == com.topographe.topographe.entity.enumm.ProjectStatus.COMPLETED ||
                 project.getStatus() == com.topographe.topographe.entity.enumm.ProjectStatus.CANCELLED) {
             throw new IllegalStateException("Impossible de créer une tâche dans un projet terminé ou annulé");
         }
 
-        // Récupérer le technicien assigné si spécifié
-        Technicien assignedTechnicien = null;
-        if (request.getAssignedTechnicienId() != null) {
-            assignedTechnicien = technicienRepository.findById(request.getAssignedTechnicienId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Technicien non trouvé avec l'ID: " + request.getAssignedTechnicienId()));
+        // Récupérer les techniciens assignés
+        Set<Technicien> assignedTechniciens = new HashSet<>();
+        if (request.getAssignedTechnicienIds() != null && !request.getAssignedTechnicienIds().isEmpty()) {
+            assignedTechniciens = request.getAssignedTechnicienIds().stream()
+                    .map(id -> technicienRepository.findById(id)
+                            .orElseThrow(() -> new ResourceNotFoundException("Technicien non trouvé avec l'ID: " + id)))
+                    .collect(Collectors.toSet());
 
-            // Vérifier que le technicien est actif
-            if (!assignedTechnicien.getIsActive()) {
-                throw new IllegalStateException("Le technicien doit être actif pour être assigné à une tâche");
+            // Vérifier que tous les techniciens sont actifs
+            for (Technicien technicien : assignedTechniciens) {
+                if (!technicien.getIsActive()) {
+                    throw new IllegalStateException("Le technicien " + technicien.getFirstName() + " " +
+                            technicien.getLastName() + " doit être actif pour être assigné à une tâche");
+                }
             }
         }
 
@@ -68,9 +80,10 @@ public class TaskServiceImpl implements TaskService {
         }
 
         // Créer la tâche
-        Task task = taskMapper.toEntity(request, project, assignedTechnicien);
+        Task task = taskMapper.toEntity(request, project, assignedTechniciens);
         Task savedTask = taskRepository.save(task);
 
+        log.info("Task created successfully: {} (ID: {})", savedTask.getTitle(), savedTask.getId());
         return taskMapper.toResponse(savedTask);
     }
 
@@ -108,7 +121,6 @@ public class TaskServiceImpl implements TaskService {
     public PageResponse<TaskResponse> getTasksByProject(
             Long projectId, int page, int size, String sortBy, String sortDir) {
 
-        // Vérifier que le projet existe
         if (!projectRepository.existsById(projectId)) {
             throw new ResourceNotFoundException("Projet non trouvé avec l'ID: " + projectId);
         }
@@ -127,7 +139,6 @@ public class TaskServiceImpl implements TaskService {
     public PageResponse<TaskResponse> getTasksByTechnicien(
             Long technicienId, int page, int size, String sortBy, String sortDir) {
 
-        // Vérifier que le technicien existe
         if (!technicienRepository.existsById(technicienId)) {
             throw new ResourceNotFoundException("Technicien non trouvé avec l'ID: " + technicienId);
         }
@@ -186,19 +197,27 @@ public class TaskServiceImpl implements TaskService {
             throw new IllegalStateException("Impossible de modifier une tâche terminée");
         }
 
-        // Récupérer le technicien assigné si spécifié
-        Technicien assignedTechnicien = null;
-        if (request.getAssignedTechnicienId() != null) {
-            assignedTechnicien = technicienRepository.findById(request.getAssignedTechnicienId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Technicien non trouvé avec l'ID: " + request.getAssignedTechnicienId()));
+        // Récupérer les techniciens assignés
+        Set<Technicien> assignedTechniciens = new HashSet<>();
+        if (request.getAssignedTechnicienIds() != null) {
+            assignedTechniciens = request.getAssignedTechnicienIds().stream()
+                    .map(techId -> technicienRepository.findById(techId)
+                            .orElseThrow(() -> new ResourceNotFoundException("Technicien non trouvé avec l'ID: " + techId)))
+                    .collect(Collectors.toSet());
 
-            if (!assignedTechnicien.getIsActive()) {
-                throw new IllegalStateException("Le technicien doit être actif pour être assigné à une tâche");
+            // Vérifier que tous les techniciens sont actifs
+            for (Technicien technicien : assignedTechniciens) {
+                if (!technicien.getIsActive()) {
+                    throw new IllegalStateException("Le technicien " + technicien.getFirstName() + " " +
+                            technicien.getLastName() + " doit être actif pour être assigné à une tâche");
+                }
             }
         }
 
         // Valider la transition de statut
-        validateStatusTransition(task.getStatus(), request.getStatus());
+        if (request.getStatus() != null) {
+            validateStatusTransition(task.getStatus(), request.getStatus());
+        }
 
         // Valider la date d'échéance
         if (request.getDueDate() != null && task.getProject().getEndDate() != null &&
@@ -207,8 +226,18 @@ public class TaskServiceImpl implements TaskService {
         }
 
         // Mettre à jour les champs
-        taskMapper.updateEntity(task, request, assignedTechnicien);
+        taskMapper.updateEntity(task, request, assignedTechniciens);
+
+        // Mettre à jour automatiquement completed_at si la tâche est terminée
+        if (request.getStatus() == TaskStatus.COMPLETED && task.getCompletedAt() == null) {
+            task.setCompletedAt(LocalDateTime.now());
+            if (request.getProgressPercentage() == null || request.getProgressPercentage() < 100) {
+                task.setProgressPercentage(100);
+            }
+        }
+
         Task updatedTask = taskRepository.save(task);
+        log.info("Task updated successfully: {} (ID: {})", updatedTask.getTitle(), updatedTask.getId());
 
         return taskMapper.toResponse(updatedTask);
     }
@@ -224,6 +253,7 @@ public class TaskServiceImpl implements TaskService {
         }
 
         taskRepository.delete(task);
+        log.info("Task deleted: {} (ID: {})", task.getTitle(), id);
     }
 
     @Override
@@ -236,15 +266,31 @@ public class TaskServiceImpl implements TaskService {
             throw new IllegalStateException("Impossible d'assigner une tâche terminée");
         }
 
-        Technicien technicien = technicienRepository.findById(request.getTechnicienId())
-                .orElseThrow(() -> new ResourceNotFoundException("Technicien non trouvé avec l'ID: " + request.getTechnicienId()));
+        Set<Technicien> techniciens = request.getTechnicienIds().stream()
+                .map(id -> technicienRepository.findById(id)
+                        .orElseThrow(() -> new ResourceNotFoundException("Technicien non trouvé avec l'ID: " + id)))
+                .collect(Collectors.toSet());
 
-        if (!technicien.getIsActive()) {
-            throw new IllegalStateException("Le technicien doit être actif pour être assigné à une tâche");
+        // Vérifier que tous les techniciens sont actifs
+        for (Technicien technicien : techniciens) {
+            if (!technicien.getIsActive()) {
+                throw new IllegalStateException("Le technicien " + technicien.getFirstName() + " " +
+                        technicien.getLastName() + " doit être actif pour être assigné à une tâche");
+            }
         }
 
-        task.setAssignedTechnicien(technicien);
+        if (request.isReplaceExisting()) {
+            // Remplacer toutes les assignations existantes
+            task.getAssignedTechniciens().clear();
+            task.getAssignedTechniciens().addAll(techniciens);
+        } else {
+            // Ajouter aux assignations existantes
+            task.getAssignedTechniciens().addAll(techniciens);
+        }
+
         Task updatedTask = taskRepository.save(task);
+        log.info("Task assigned successfully: {} techniciens assigned to task {}",
+                techniciens.size(), updatedTask.getTitle());
 
         return taskMapper.toResponse(updatedTask);
     }
@@ -259,13 +305,16 @@ public class TaskServiceImpl implements TaskService {
             throw new IllegalStateException("Impossible de désassigner une tâche en cours ou terminée");
         }
 
-        task.setAssignedTechnicien(null);
+        task.getAssignedTechniciens().clear();
+
         // Remettre le statut à TODO si elle était en REVIEW
         if (task.getStatus() == TaskStatus.REVIEW) {
             task.setStatus(TaskStatus.TODO);
         }
 
         Task updatedTask = taskRepository.save(task);
+        log.info("Task unassigned: {}", updatedTask.getTitle());
+
         return taskMapper.toResponse(updatedTask);
     }
 
@@ -281,8 +330,13 @@ public class TaskServiceImpl implements TaskService {
             throw new IllegalStateException("Le nouveau technicien doit être actif");
         }
 
-        task.setAssignedTechnicien(newTechnicien);
+        // Remplacer tous les techniciens assignés par le nouveau
+        task.getAssignedTechniciens().clear();
+        task.getAssignedTechniciens().add(newTechnicien);
+
         Task updatedTask = taskRepository.save(task);
+        log.info("Task reassigned: {} reassigned to {}", updatedTask.getTitle(),
+                newTechnicien.getFirstName() + " " + newTechnicien.getLastName());
 
         return taskMapper.toResponse(updatedTask);
     }
@@ -296,12 +350,20 @@ public class TaskServiceImpl implements TaskService {
         validateStatusTransition(task.getStatus(), status);
 
         // Vérifications spécifiques selon le statut
-        if (status == TaskStatus.IN_PROGRESS && task.getAssignedTechnicien() == null) {
-            throw new IllegalStateException("Une tâche doit être assignée à un technicien avant de pouvoir être démarrée");
+        if (status == TaskStatus.IN_PROGRESS && task.getAssignedTechniciens().isEmpty()) {
+            throw new IllegalStateException("Une tâche doit être assignée à au moins un technicien avant de pouvoir être démarrée");
         }
 
         task.setStatus(status);
+
+        // Mettre à jour completed_at si la tâche est terminée
+        if (status == TaskStatus.COMPLETED && task.getCompletedAt() == null) {
+            task.setCompletedAt(LocalDateTime.now());
+            task.setProgressPercentage(100);
+        }
+
         Task updatedTask = taskRepository.save(task);
+        log.info("Task status updated: {} -> {}", updatedTask.getTitle(), status);
 
         return taskMapper.toResponse(updatedTask);
     }
@@ -332,7 +394,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public List<TaskResponse> getUnassignedTasks() {
-        List<Task> unassignedTasks = taskRepository.findByAssignedTechnicienIsNull();
+        List<Task> unassignedTasks = taskRepository.findUnassignedTasks();
         return unassignedTasks.stream()
                 .map(taskMapper::toResponse)
                 .collect(Collectors.toList());
@@ -401,7 +463,75 @@ public class TaskServiceImpl implements TaskService {
         return taskRepository.countByTopographeId(topographeId);
     }
 
-// Méthodes utilitaires
+    // Nouvelles méthodes utilitaires
+
+    /**
+     * Mise à jour du pourcentage de progression d'une tâche
+     */
+    @Transactional
+    public TaskResponse updateTaskProgress(Long taskId, Integer progressPercentage, String progressNotes) {
+        Task task = findTaskById(taskId);
+
+        if (progressPercentage < 0 || progressPercentage > 100) {
+            throw new IllegalArgumentException("Le pourcentage de progression doit être entre 0 et 100");
+        }
+
+        task.setProgressPercentage(progressPercentage);
+        if (progressNotes != null) {
+            task.setProgressNotes(progressNotes);
+        }
+
+        // Si la progression atteint 100%, mettre automatiquement en COMPLETED
+        if (progressPercentage == 100 && task.getStatus() != TaskStatus.COMPLETED) {
+            task.setStatus(TaskStatus.COMPLETED);
+            task.setCompletedAt(LocalDateTime.now());
+        }
+
+        Task updatedTask = taskRepository.save(task);
+        return taskMapper.toResponse(updatedTask);
+    }
+
+    /**
+     * Assignation partielle - ajouter un technicien à une tâche existante
+     */
+    @Transactional
+    public TaskResponse addTechnicienToTask(Long taskId, Long technicienId) {
+        Task task = findTaskById(taskId);
+        Technicien technicien = technicienRepository.findById(technicienId)
+                .orElseThrow(() -> new ResourceNotFoundException("Technicien non trouvé avec l'ID: " + technicienId));
+
+        if (!technicien.getIsActive()) {
+            throw new IllegalStateException("Le technicien doit être actif pour être assigné à une tâche");
+        }
+
+        task.getAssignedTechniciens().add(technicien);
+        Task updatedTask = taskRepository.save(task);
+
+        return taskMapper.toResponse(updatedTask);
+    }
+
+    /**
+     * Retirer un technicien d'une tâche
+     */
+    @Transactional
+    public TaskResponse removeTechnicienFromTask(Long taskId, Long technicienId) {
+        Task task = findTaskById(taskId);
+        Technicien technicien = technicienRepository.findById(technicienId)
+                .orElseThrow(() -> new ResourceNotFoundException("Technicien non trouvé avec l'ID: " + technicienId));
+
+        task.getAssignedTechniciens().remove(technicien);
+
+        // Si plus aucun technicien assigné et tâche en cours, remettre en TODO
+        if (task.getAssignedTechniciens().isEmpty() &&
+                (task.getStatus() == TaskStatus.IN_PROGRESS || task.getStatus() == TaskStatus.REVIEW)) {
+            task.setStatus(TaskStatus.TODO);
+        }
+
+        Task updatedTask = taskRepository.save(task);
+        return taskMapper.toResponse(updatedTask);
+    }
+
+    // Méthodes utilitaires privées
 
     private Task findTaskById(Long id) {
         return taskRepository.findById(id)
@@ -428,7 +558,10 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private void validateStatusTransition(TaskStatus currentStatus, TaskStatus newStatus) {
-        // Règles de transition des statuts
+        if (currentStatus == newStatus) {
+            return; // Pas de transition
+        }
+
         switch (currentStatus) {
             case TODO:
                 if (newStatus != TaskStatus.IN_PROGRESS && newStatus != TaskStatus.COMPLETED) {
@@ -449,5 +582,4 @@ public class TaskServiceImpl implements TaskService {
                 throw new IllegalStateException("Une tâche terminée ne peut plus changer de statut");
         }
     }
-
 }

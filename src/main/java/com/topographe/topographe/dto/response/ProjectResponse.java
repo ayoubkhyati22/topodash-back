@@ -35,9 +35,23 @@ public class ProjectResponse {
     private int reviewTasks;
     private int completedTasks;
 
-    // Informations de progression
-    private Double progressPercentage;
+    // Informations de progression améliorées
+    private Double progressPercentage;          // Basé sur tâches terminées
+    private Double weightedProgressPercentage;  // Pondéré selon statuts
     private Integer daysRemaining;
     private Boolean isOverdue;
     private Boolean isCompleted;
+
+    // Nouvelles informations sur les techniciens
+    private int assignedTechniciensCount;
+    private String assignedTechniciensNames;    // Noms des techniciens assignés
+
+    // Indicateurs de santé du projet
+    private String healthStatus;  // GOOD, WARNING, CRITICAL
+    private String healthMessage; // Message explicatif
+
+    // Statistiques temporelles
+    private Integer totalDuration;     // Durée totale en jours
+    private Integer elapsedDuration;   // Jours écoulés depuis le début
+    private Double timeProgressPercentage; // Progression temporelle
 }

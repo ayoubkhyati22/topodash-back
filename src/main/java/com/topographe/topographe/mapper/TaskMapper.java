@@ -10,27 +10,34 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 public class TaskMapper {
 
-    public Task toEntity(TaskCreateRequest request, Project project, Technicien assignedTechnicien) {
+    public Task toEntity(TaskCreateRequest request, Project project, Set<Technicien> assignedTechniciens) {
         Task task = new Task();
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
         task.setProject(project);
-        task.setAssignedTechnicien(assignedTechnicien);
+        task.setAssignedTechniciens(assignedTechniciens);
         task.setDueDate(request.getDueDate());
         task.setStatus(request.getStatus());
+        task.setProgressPercentage(request.getProgressPercentage());
+        task.setProgressNotes(request.getProgressNotes());
         return task;
     }
 
-    public void updateEntity(Task task, TaskUpdateRequest request, Technicien assignedTechnicien) {
+    public void updateEntity(Task task, TaskUpdateRequest request, Set<Technicien> assignedTechniciens) {
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
-        task.setAssignedTechnicien(assignedTechnicien);
+        task.setAssignedTechniciens(assignedTechniciens);
         task.setDueDate(request.getDueDate());
         task.setStatus(request.getStatus());
+        task.setProgressPercentage(request.getProgressPercentage());
+        task.setProgressNotes(request.getProgressNotes());
     }
 
     public TaskResponse toResponse(Task task) {
@@ -41,6 +48,9 @@ public class TaskMapper {
         response.setStatus(task.getStatus());
         response.setDueDate(task.getDueDate());
         response.setCreatedAt(task.getCreatedAt());
+        response.setCompletedAt(task.getCompletedAt());
+        response.setProgressPercentage(task.getProgressPercentage());
+        response.setProgressNotes(task.getProgressNotes());
 
         // Informations du projet
         Project project = task.getProject();
@@ -57,13 +67,30 @@ public class TaskMapper {
         response.setTopographeId(project.getTopographe().getId());
         response.setTopographeName(project.getTopographe().getFirstName() + " " + project.getTopographe().getLastName());
 
-        // Informations du technicien assigné
-        if (task.getAssignedTechnicien() != null) {
-            Technicien technicien = task.getAssignedTechnicien();
-            response.setAssignedTechnicienId(technicien.getId());
-            response.setAssignedTechnicienName(technicien.getFirstName() + " " + technicien.getLastName());
-            response.setAssignedTechnicienSkillLevel(technicien.getSkillLevel().name());
-            response.setAssignedTechnicienSpecialties(technicien.getSpecialties());
+        // Informations des techniciens assignés
+        if (task.getAssignedTechniciens() != null && !task.getAssignedTechniciens().isEmpty()) {
+            List<TaskResponse.TechnicienInfo> technicienInfos = task.getAssignedTechniciens().stream()
+                    .map(technicien -> {
+                        TaskResponse.TechnicienInfo info = new TaskResponse.TechnicienInfo();
+                        info.setId(technicien.getId());
+                        info.setName(technicien.getFirstName() + " " + technicien.getLastName());
+                        info.setSkillLevel(technicien.getSkillLevel().name());
+                        info.setSpecialties(technicien.getSpecialties());
+                        info.setIsActive(technicien.getIsActive());
+                        return info;
+                    })
+                    .collect(Collectors.toList());
+
+            response.setAssignedTechniciens(technicienInfos);
+            response.setAssignedTechniciensCount(technicienInfos.size());
+            response.setAssignedTechniciensNames(
+                    technicienInfos.stream()
+                            .map(TaskResponse.TechnicienInfo::getName)
+                            .collect(Collectors.joining(", "))
+            );
+        } else {
+            response.setAssignedTechniciensCount(0);
+            response.setAssignedTechniciensNames("");
         }
 
         // Calculs temporels
@@ -77,28 +104,47 @@ public class TaskMapper {
         if (task.getDueDate() != null) {
             long daysRemaining = ChronoUnit.DAYS.between(today, task.getDueDate());
             response.setDaysRemaining((int) daysRemaining);
-            response.setIsOverdue(daysRemaining < 0 && task.getStatus() != com.topographe.topographe.entity.enumm.TaskStatus.COMPLETED);
-            response.setIsDueSoon(daysRemaining >= 0 && daysRemaining <= 3 && task.getStatus() != com.topographe.topographe.entity.enumm.TaskStatus.COMPLETED);
+            response.setIsOverdue(task.isOverdue());
+            response.setIsDueSoon(daysRemaining >= 0 && daysRemaining <= 3 && !task.isCompleted());
 
-            // Calcul de la priorité basée sur la date d'échéance
-            if (task.getStatus() == com.topographe.topographe.entity.enumm.TaskStatus.COMPLETED) {
-                response.setPriority("COMPLETED");
-            } else if (daysRemaining < 0) {
-                response.setPriority("CRITICAL");
-            } else if (daysRemaining <= 1) {
-                response.setPriority("HIGH");
-            } else if (daysRemaining <= 7) {
-                response.setPriority("MEDIUM");
-            } else {
-                response.setPriority("LOW");
-            }
+            // Calcul de la priorité basée sur la date d'échéance et le statut
+            response.setPriority(calculatePriority(task, daysRemaining));
         } else {
             response.setDaysRemaining(null);
             response.setIsOverdue(false);
             response.setIsDueSoon(false);
-            response.setPriority(task.getStatus() == com.topographe.topographe.entity.enumm.TaskStatus.COMPLETED ? "COMPLETED" : "LOW");
+            response.setPriority(task.isCompleted() ? "COMPLETED" : "LOW");
+        }
+
+        // Calcul du temps pour compléter (si complétée)
+        if (task.getCompletedAt() != null) {
+            long daysToComplete = ChronoUnit.DAYS.between(task.getCreatedAt().toLocalDate(),
+                    task.getCompletedAt().toLocalDate());
+            response.setDaysToComplete((int) daysToComplete);
         }
 
         return response;
+    }
+
+    private String calculatePriority(Task task, long daysRemaining) {
+        if (task.isCompleted()) {
+            return "COMPLETED";
+        }
+
+        if (task.isOverdue()) {
+            return "CRITICAL";
+        }
+
+        if (daysRemaining <= 0) {
+            return "CRITICAL";
+        } else if (daysRemaining <= 1) {
+            return "HIGH";
+        } else if (daysRemaining <= 3) {
+            return "MEDIUM";
+        } else if (daysRemaining <= 7) {
+            return "MEDIUM";
+        } else {
+            return "LOW";
+        }
     }
 }
