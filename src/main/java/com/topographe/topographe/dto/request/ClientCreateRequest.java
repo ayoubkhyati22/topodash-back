@@ -1,6 +1,7 @@
 package com.topographe.topographe.dto.request;
 
 import com.topographe.topographe.entity.enumm.ClientType;
+import jakarta.validation.constraints.*;
 import lombok.Data;
 import java.time.LocalDate;
 
@@ -18,5 +19,6 @@ public class ClientCreateRequest {
     private Long cityId;
     private ClientType clientType;
     private String companyName;
+
     private Long createdByTopographeId;
 }

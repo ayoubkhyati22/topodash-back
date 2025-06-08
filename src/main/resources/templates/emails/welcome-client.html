@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenue sur TopoDash - Accès Client</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 30px;
+        }
+        .welcome-message {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .welcome-message h2 {
+            color: #28a745;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        .credentials-box {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 2px solid #28a745;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .credentials-box h3 {
+            color: #28a745;
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        .credential-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0;
+            padding: 10px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .credential-item:last-child {
+            border-bottom: none;
+        }
+        .credential-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        .credential-value {
+            font-family: 'Courier New', monospace;
+            background-color: #fff;
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+            font-size: 14px;
+            font-weight: bold;
+            color: #212529;
+        }
+        .security-notice {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-left: 4px solid #f39c12;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .security-notice h4 {
+            color: #856404;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .security-notice ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .security-notice li {
+            color: #856404;
+            margin-bottom: 5px;
+        }
+        .profile-info {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .profile-info h4 {
+            color: #495057;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .profile-item {
+            display: flex;
+            margin-bottom: 8px;
+        }
+        .profile-label {
+            font-weight: 600;
+            width: 120px;
+            color: #495057;
+        }
+        .profile-value {
+            color: #212529;
+        }
+        .topographe-info {
+            background-color: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .topographe-info h4 {
+            color: #0056b3;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .features-list {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .features-list h4 {
+            color: #155724;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .features-list ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .features-list li {
+            color: #155724;
+            margin-bottom: 8px;
+        }
+        .cta-button {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .cta-button a {
+            display: inline-block;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+        .cta-button a:hover {
+            transform: translateY(-2px);
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid #dee2e6;
+        }
+        .footer p {
+            margin: 5px 0;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        .footer a {
+            color: #28a745;
+            text-decoration: none;
+        }
+        @media (max-width: 600px) {
+            .container {
+                margin: 10px;
+            }
+            .content {
+                padding: 20px;
+            }
+            .credential-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .credential-value {
+                margin-top: 5px;
+                width: 100%;
+                box-sizing: border-box;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <h1 th:text="${appName}">TopoDash</h1>
+        <p>Accès client - Suivi de projets topographiques</p>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+        <!-- Welcome Message -->
+        <div class="welcome-message">
+            <h2>Bienvenue <span th:text="${client.firstName + ' ' + client.lastName}">Nom Prénom</span> !</h2>
+            <p>Votre compte client a été créé avec succès le <span th:text="${createdDate}">01/01/2025</span>.</p>
+            <p>Vous êtes maintenant connecté à votre topographe <strong th:text="${topographe.firstName + ' ' + topographe.lastName}">Topographe</strong>.</p>
+        </div>
+
+        <!-- Credentials Box -->
+        <div class="credentials-box">
+            <h3>🔐 Vos identifiants de connexion</h3>
+            <div class="credential-item">
+                <span class="credential-label">📧 Nom d'utilisateur :</span>
+                <span class="credential-value" th:text="${username}">username</span>
+            </div>
+            <div class="credential-item">
+                <span class="credential-label">🔑 Mot de passe :</span>
+                <span class="credential-value" th:text="${password}">password</span>
+            </div>
+        </div>
+
+        <!-- Security Notice -->
+        <div class="security-notice">
+            <h4>⚠️ Important - Sécurité de votre compte</h4>
+            <ul>
+                <li>Changez votre mot de passe lors de votre première connexion</li>
+                <li>Ne partagez jamais vos identifiants avec qui que ce soit</li>
+                <li>Déconnectez-vous toujours après utilisation</li>
+                <li>Utilisez un mot de passe fort avec majuscules, minuscules, chiffres et caractères spéciaux</li>
+            </ul>
+        </div>
+
+        <!-- Profile Information -->
+        <div class="profile-info">
+            <h4>👤 Informations de votre profil</h4>
+            <div class="profile-item">
+                <span class="profile-label">Nom complet :</span>
+                <span class="profile-value" th:text="${client.firstName + ' ' + client.lastName}">Nom Prénom</span>
+            </div>
+            <div class="profile-item">
+                <span class="profile-label">Email :</span>
+                <span class="profile-value" th:text="${client.email}">email@example.com</span>
+            </div>
+            <div class="profile-item">
+                <span class="profile-label">Téléphone :</span>
+                <span class="profile-value" th:text="${client.phoneNumber}">+212 6XX XXX XXX</span>
+            </div>
+            <div class="profile-item">
+                <span class="profile-label">Type de client :</span>
+                <span class="profile-value" th:text="${client.clientType}">INDIVIDUAL</span>
+            </div>
+            <div class="profile-item" th:if="${client.companyName}">
+                <span class="profile-label">Entreprise :</span>
+                <span class="profile-value" th:text="${client.companyName}">Nom de l'entreprise</span>
+            </div>
+        </div>
+
+        <!-- Topographe Information -->
+        <div class="topographe-info">
+            <h4>🏗️ Votre topographe responsable</h4>
+            <div class="profile-item">
+                <span class="profile-label">Nom :</span>
+                <span class="profile-value" th:text="${topographe.firstName + ' ' + topographe.lastName}">Topographe</span>
+            </div>
+            <div class="profile-item">
+                <span class="profile-label">Email :</span>
+                <span class="profile-value" th:text="${topographe.email}">topographe@example.com</span>
+            </div>
+            <div class="profile-item">
+                <span class="profile-label">Téléphone :</span>
+                <span class="profile-value" th:text="${topographe.phoneNumber}">+212 6XX XXX XXX</span>
+            </div>
+            <div class="profile-item">
+                <span class="profile-label">Licence :</span>
+                <span class="profile-value" th:text="${topographe.licenseNumber}">LIC123456</span>
+            </div>
+            <div class="profile-item">
+                <span class="profile-label">Spécialisation :</span>
+                <span class="profile-value" th:text="${topographe.specialization}">Topographie générale</span>
+            </div>
+        </div>
+
+        <!-- Features List -->
+        <div class="features-list">
+            <h4>🚀 Grâce à votre compte, vous pouvez</h4>
+            <ul>
+                <li>Suivre l'avancement de vos projets en temps réel</li>
+                <li>Consulter les tâches en cours et terminées</li>
+                <li>Accéder aux rapports et documents de vos projets</li>
+                <li>Communiquer directement avec votre équipe topographique</li>
+                <li>Recevoir des notifications sur l'état de vos projets</li>
+                <li>Consulter l'historique complet de vos collaborations</li>
+            </ul>
+        </div>
+
+        <!-- Call to Action -->
+        <div class="cta-button">
+            <a th:href="${appUrl + '/login'}" href="#" target="_blank">Se connecter maintenant</a>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Si vous rencontrez des difficultés, contactez :</p>
+        <p><strong>Support technique :</strong> <a th:href="'mailto:' + ${supportEmail}" th:text="${supportEmail}">support@topographe.com</a></p>
+        <p><strong>Votre topographe :</strong> <a th:href="'mailto:' + ${topographe.email}" th:text="${topographe.email}">topographe@example.com</a></p>
+        <p style="margin-top: 20px; font-size: 12px; color: #adb5bd;">
+            Ce message est confidentiel. Si vous l'avez reçu par erreur, veuillez le supprimer et nous en informer immédiatement.
+        </p>
+        <p style="font-size: 12px; color: #adb5bd;">
+            © 2025 <span th:text="${appName}">TopoDash</span>. Tous droits réservés.
+        </p>
+    </div>
+</div>
+</body>
+</html>

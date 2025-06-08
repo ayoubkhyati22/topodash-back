@@ -18,8 +18,11 @@ import com.topographe.topographe.repository.ProjectRepository;
 import com.topographe.topographe.repository.referentiel.CityRepository;
 import com.topographe.topographe.repository.TopographeRepository;
 import com.topographe.topographe.service.ClientService;
+import com.topographe.topographe.service.EmailService;
+import com.topographe.topographe.util.PasswordGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -42,10 +45,17 @@ public class ClientServiceImpl implements ClientService {
     private final ProjectRepository projectRepository;
     private final ClientMapper clientMapper;
     private final PasswordEncoder passwordEncoder;
+    private final PasswordGenerator passwordGenerator;
+    private final EmailService emailService;
+
+    @Value("${app.mail.admin:admin@topographe.com}")
+    private String adminEmail;
 
     @Override
     @Transactional
     public ClientResponse createClient(ClientCreateRequest request, User currentUser) {
+        log.info("Début de la création du client: {}", request.getUsername());
+
         // Vérifier les doublons
         validateUniqueFields(request);
 
@@ -77,14 +87,74 @@ public class ClientServiceImpl implements ClientService {
         // Valider le nom d'entreprise pour les types COMPANY et GOVERNMENT
         validateCompanyName(request.getClientType(), request.getCompanyName());
 
+        // Générer un mot de passe automatiquement s'il n'est pas fourni
+        String plainPassword;
+        boolean passwordGenerated = false;
+
+        if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
+            plainPassword = passwordGenerator.generateSimplePassword(10);
+            passwordGenerated = true;
+            log.info("Mot de passe généré automatiquement pour le client: {}", request.getUsername());
+        } else {
+            plainPassword = request.getPassword();
+            log.info("Mot de passe fourni manuellement pour le client: {}", request.getUsername());
+        }
+
         // Encoder le mot de passe
-        String encodedPassword = passwordEncoder.encode(request.getPassword());
+        String encodedPassword = passwordEncoder.encode(plainPassword);
 
         // Créer le client
         Client client = clientMapper.toEntity(request, city, createdBy, encodedPassword);
         Client savedClient = clientRepository.save(client);
+        log.info("Client créé avec succès: {} (ID: {})", savedClient.getUsername(), savedClient.getId());
 
-        return buildClientResponseWithStats(savedClient);
+        // Préparer la réponse avec statistiques
+        ClientResponse response = buildClientResponseWithStats(savedClient);
+
+        // Envoyer l'email de bienvenue de manière asynchrone
+        try {
+            sendWelcomeEmailAsync(savedClient, plainPassword, createdBy);
+            log.info("Email de bienvenue programmé pour le client: {}", savedClient.getEmail());
+        } catch (Exception e) {
+            log.error("Erreur lors de la programmation de l'email de bienvenue pour le client: {}", savedClient.getEmail(), e);
+            // Ne pas faire échouer la création du client si l'email échoue
+        }
+
+        return response;
+    }
+
+    /**
+     * Envoie l'email de bienvenue de manière asynchrone
+     */
+    private void sendWelcomeEmailAsync(Client client, String password, Topographe topographe) {
+        // Utiliser un thread séparé pour éviter de bloquer la transaction
+        new Thread(() -> {
+            try {
+                // Attendre un peu pour s'assurer que la transaction est commitée
+                Thread.sleep(1000);
+
+                // Essayer d'abord l'email HTML avec template
+                try {
+                    emailService.sendWelcomeEmailToClient(client, password, topographe);
+                    log.info("Email HTML de bienvenue envoyé avec succès au client: {}", client.getEmail());
+                } catch (Exception e) {
+                    log.warn("Échec de l'email HTML, tentative avec email simple pour le client: {}", client.getEmail());
+                    // Fallback vers email simple si le template échoue
+                    emailService.sendSimpleWelcomeEmailToClient(client, password, topographe);
+                    log.info("Email simple de bienvenue envoyé avec succès au client: {}", client.getEmail());
+                }
+
+                // Envoyer notification au topographe responsable
+                try {
+                    emailService.sendClientCreationNotificationToTopographe(client, topographe);
+                } catch (Exception e) {
+                    log.warn("Échec de l'envoi de la notification au topographe pour le client: {}", client.getEmail(), e);
+                }
+
+            } catch (Exception e) {
+                log.error("Erreur complète lors de l'envoi des emails pour le client: {}", client.getEmail(), e);
+            }
+        }).start();
     }
 
     @Override
@@ -274,7 +344,7 @@ public class ClientServiceImpl implements ClientService {
         return clientRepository.countByCreatedById(topographeId);
     }
 
-    // Méthodes utilitaires (restent identiques)
+    // Méthodes utilitaires
 
     private Client findClientById(Long id) {
         return clientRepository.findById(id)
